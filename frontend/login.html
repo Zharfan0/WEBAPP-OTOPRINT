@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Oto-Print | Login</title>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #006A42 0%, #004d30 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 24px;
+    }
+
+    /* ============ LOGIN CARD ============ */
+    .login-card {
+        background: white;
+        border-radius: 32px;
+        padding: 48px 40px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        width: 100%;
+        max-width: 550px;
+        text-align: center;
+    }
+
+    /* Logo / Icon */
+    .logo-icon {
+        width: 80px;
+        height: 80px;
+        background: #006A42;
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px auto;
+    }
+
+    .logo-icon i {
+        font-size: 48px;
+        color: white;
+    }
+
+    .welcome-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 8px;
+    }
+
+    .subtitle {
+        font-size: 18px;
+        color: #666;
+        margin-bottom: 40px;
+    }
+
+    /* ============ FORM ============ */
+    .form-group {
+        margin-bottom: 28px;
+        text-align: left;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 12px;
+    }
+
+    .input-wrapper {
+        position: relative;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 20px 56px 20px 20px;
+        border: 2px solid #e1e1e1;
+        border-radius: 16px;
+        font-size: 18px;
+        background-color: #f8f9fa;
+        transition: all 0.2s ease;
+        outline: none;
+    }
+
+    .form-input:focus {
+        border-color: #006A42;
+        background-color: white;
+        box-shadow: 0 0 0 3px rgba(0, 106, 66, 0.1);
+    }
+
+    /* Input khusus NIM (numeric keyboard) */
+    input[type="tel"] {
+        letter-spacing: 1px;
+        font-family: monospace;
+        font-size: 20px;
+    }
+
+    /* ============ TOGGLE PASSWORD ============ */
+    .toggle-password {
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        font-size: 24px;
+        color: #999;
+        padding: 12px;
+        transition: color 0.2s;
+    }
+
+    .toggle-password:active {
+        color: #006A42;
+    }
+
+    /* ============ TOMBOL LOGIN ============ */
+    .login-btn {
+        width: 100%;
+        padding: 20px;
+        background-color: #006A42;
+        color: white;
+        border: none;
+        border-radius: 16px;
+        font-size: 22px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.1s ease;
+        margin-top: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    /* Efek sentuh (touch feedback) */
+    .login-btn:active {
+        transform: scale(0.97);
+        background-color: #005235;
+    }
+
+    .login-btn:disabled {
+        background-color: #999;
+        transform: none;
+        cursor: not-allowed;
+    }
+
+    /* ============ LOADING STATE ============ */
+    .spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(255,255,255,0.3);
+        border-top: 3px solid white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* ============ ERROR MESSAGE ============ */
+    .error-message {
+        background-color: #fee2e2;
+        color: #dc2626;
+        padding: 16px;
+        border-radius: 16px;
+        font-size: 16px;
+        margin-top: 20px;
+        display: none;
+        text-align: center;
+        font-weight: 500;
+    }
+
+    /* ============ DEMO INFO ============ */
+    .demo-info {
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 14px;
+        color: #999;
+    }
+
+    .demo-info p {
+        margin: 6px 0;
+        font-size: 14px;
+    }
+
+    .demo-info strong {
+        color: #006A42;
+        font-size: 16px;
+    }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 480px) {
+        .login-card {
+            padding: 32px 24px;
+        }
+        
+        .welcome-title {
+            font-size: 28px;
+        }
+        
+        .form-input {
+            padding: 16px 56px 16px 16px;
+            font-size: 16px;
+        }
+        
+        .login-btn {
+            padding: 16px;
+            font-size: 20px;
+        }
+        
+        .form-label {
+            font-size: 16px;
+        }
+    }
+</style>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+
+<div class="login-card">
+    <!-- Logo Icon -->
+    <div class="logo-icon">
+        <i class="bi bi-printer"></i>
+    </div>
+    
+    <h1 class="welcome-title">Oto-Print</h1>
+    <p class="subtitle">Vending Machine Dokumen Akademik</p>
+    
+    <form id="loginForm">
+        <div class="form-group">
+            <label class="form-label">NIM / Email</label>
+            <div class="input-wrapper">
+                <input type="tel" 
+                       id="nim" 
+                       name="nim" 
+                       class="form-input" 
+                       placeholder="Masukkan NIM atau Email"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       required>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="input-wrapper">
+                <input type="password" 
+                       id="password" 
+                       name="password" 
+                       class="form-input" 
+                       placeholder="Masukkan password"
+                       required>
+                <i class="bi bi-eye-slash toggle-password" id="togglePassword"></i>
+            </div>
+        </div>
+        
+        <button type="submit" class="login-btn" id="loginBtn">
+            <span>Log In</span>
+        </button>
+        
+        <div id="errorMessage" class="error-message"></div>
+    </form>
+    
+    <div class="demo-info">
+        <p><strong>📱 Demo Akun</strong></p>
+        <p>Mahasiswa: NIM <strong>20220140055</strong> | Password: <strong>user123</strong></p>
+        <p>Admin: NIM <strong>admin</strong> | Password: <strong>admin</strong></p>
+    </div>
+</div>
+
+<script>
+    // ============ TOGGLE PASSWORD ============
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+
+    togglePassword.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.classList.toggle('bi-eye-slash');
+        this.classList.toggle('bi-eye');
+        
+        // Feedback sentuh
+        this.style.opacity = '0.7';
+        setTimeout(() => { this.style.opacity = '1'; }, 150);
+    });
+
+    // ============ LOGIN SUBMIT ============
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const nimInput = document.getElementById('nim').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const errorDiv = document.getElementById('errorMessage');
+        const loginBtn = document.getElementById('loginBtn');
+        const btnText = loginBtn.querySelector('span');
+        
+        // Reset error
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+        
+        // Validasi input
+        if (!nimInput || !password) {
+            errorDiv.textContent = 'Harap isi NIM/Email dan Password';
+            errorDiv.style.display = 'block';
+            // Haptic feedback (vibrate) jika device support
+            if (navigator.vibrate) navigator.vibrate(100);
+            return;
+        }
+        
+        // Extract NIM dari email jika perlu
+        let nim = nimInput;
+        if (nimInput.includes('@')) {
+            nim = nimInput.split('@')[0];
+        }
+        
+        // Tampilkan loading dengan spinner
+        loginBtn.disabled = true;
+        btnText.innerHTML = '<div class="spinner"></div> Memproses...';
+        
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nim: nim, password: password })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                sessionStorage.setItem('user', JSON.stringify(data.user));
+                
+                // Feedback sukses (vibrate pendek)
+                if (navigator.vibrate) navigator.vibrate(50);
+                
+                // Redirect berdasarkan role
+                if (data.role === 'admin') {
+                    window.location.href = '/admin/insight.html';
+                } else {
+                    window.location.href = '/pages/dashboard.html';
+                }
+            } else {
+                errorDiv.textContent = data.message || 'Login gagal. Periksa NIM dan password Anda.';
+                errorDiv.style.display = 'block';
+                if (navigator.vibrate) navigator.vibrate(200);
+                loginBtn.disabled = false;
+                btnText.innerHTML = 'Log In';
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            errorDiv.textContent = 'Gagal terhubung ke server. Pastikan server backend berjalan.';
+            errorDiv.style.display = 'block';
+            if (navigator.vibrate) navigator.vibrate(200);
+            loginBtn.disabled = false;
+            btnText.innerHTML = 'Log In';
+        }
+    });
+    
+    // ============ ENTER KEY SUBMIT ============
+    document.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const submitBtn = document.getElementById('loginBtn');
+            if (!submitBtn.disabled) {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        }
+    });
+    
+    // ============ FOCUS NIM FIELD ON LOAD ============
+    document.getElementById('nim').focus();
+</script>
+</body>
+</html>

@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Template - OtoPrint</title>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.4.2/mammoth.browser.min.js"></script>
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  background: #f0f2f5;
+}
+
+.sidebar {
+  width: 260px;
+  background: #1a1a2e;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  padding: 24px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 20px;
+}
+
+.logo img {
+  max-width: 120px;
+  height: auto;
+}
+
+.menu-item {
+  padding: 14px 24px;
+  cursor: pointer;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+.menu-item i {
+  font-size: 20px;
+  width: 24px;
+}
+
+.menu-item:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.menu-item.active {
+  background: #006A42;
+  color: white;
+  border-left: 4px solid #FFD700;
+}
+
+.logout {
+  margin: 20px;
+  margin-top: auto;
+  margin-bottom: 30px;
+  padding: 12px;
+  border: 2px solid #dc3545;
+  text-align: center;
+  color: #dc3545;
+  cursor: pointer;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.logout:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.main {
+  flex: 1;
+  margin-left: 260px;
+  padding: 30px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.admin-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: white;
+  padding: 8px 20px;
+  border-radius: 30px;
+}
+
+.admin-avatar {
+  width: 40px;
+  height: 40px;
+  background: #006A42;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+.btn-create {
+  background: #006A42;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.template-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.template-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+.template-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.template-icon {
+  width: 48px;
+  height: 48px;
+  background: #e8f5e9;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.template-icon i {
+  font-size: 28px;
+  color: #006A42;
+}
+
+.template-title h3 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.template-title p {
+  font-size: 12px;
+  color: #999;
+}
+
+.template-info {
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.template-info div {
+  margin-bottom: 6px;
+  color: #555;
+}
+
+.template-info i {
+  width: 20px;
+  color: #006A42;
+}
+
+.template-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn-edit, .btn-delete {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-edit {
+  background: #0d6efd;
+  color: white;
+}
+
+.btn-delete {
+  background: #dc3545;
+  color: white;
+}
+
+/* MODAL STYLE */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.modal-close {
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.btn-save {
+  background: #006A42;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-cancel {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-preview {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-preview:hover {
+  background: #5a6268;
+}
+
+.fields-list {
+  margin-top: 24px;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.fields-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.btn-add-field {
+  background: #0d6efd;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: #999;
+}
+
+.empty-state i {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #ddd;
+  border-top-color: #006A42;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+.preview-container {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f5f5;
+  height: 500px;
+  position: relative;
+}
+
+.preview-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.preview-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #999;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Two columns layout for edit modal */
+.edit-modal-body {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.edit-modal-left {
+  flex: 1;
+  min-width: 300px;
+}
+
+.edit-modal-right {
+  flex: 1;
+  min-width: 300px;
+}
+
+/* Move buttons for field ordering */
+.btn-move-up, .btn-move-down {
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  transition: all 0.1s ease;
+}
+
+.btn-move-up:hover:not(:disabled), 
+.btn-move-down:hover:not(:disabled) {
+  background: #006A42;
+  color: white;
+  border-color: #006A42;
+}
+
+.btn-move-up:disabled, 
+.btn-move-down:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.field-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.field-actions {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.field-order-number {
+  font-weight: 700;
+  color: #006A42;
+  min-width: 30px;
+}
+
+.source-info {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.source-info.auto { background: #e3f2fd; color: #0d6efd; }
+.source-info.system { background: #fff3cd; color: #856404; }
+.source-info.signature { background: #e8f5e9; color: #006A42; }
+.source-info.manual { background: #e9ecef; color: #495057; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <img src="/assets/images/logo-umy3.png" alt="UMY Logo" onerror="this.style.display='none'">
+  </div>
+
+  <div class="menu-item" onclick="window.location.href='/admin/insight.html'">
+    <i class="bi bi-graph-up"></i> Insight
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/logs.html'">
+    <i class="bi bi-list-ul"></i> Log Cetak
+  </div>
+  <div class="menu-item active" onclick="window.location.href='#'">
+    <i class="bi bi-file-earmark-word"></i> Template V1
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/templates_V2.html'">
+    <i class="bi bi-grid-3x3-gap-fill"></i> Template V2
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/maintenance.html'">
+    <i class="bi bi-gear"></i> Maintenance
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/signature.html'">
+    <i class="bi bi-pen"></i> Master Signature
+  </div>
+
+  <div class="logout" id="logoutBtn">
+    <i class="bi bi-box-arrow-right"></i> Logout
+  </div>
+</div>
+
+<div class="main">
+  <div class="header">
+    <div class="title">Manajemen Template V1</div>
+    <div class="admin-info">
+      <div class="admin-avatar" id="adminAvatar">A</div>
+      <span class="admin-name" id="adminName">Loading...</span>
+    </div>
+  </div>
+
+  <button class="btn-create" id="createTemplateBtn">
+    <i class="bi bi-plus-circle"></i> Buat Template Baru
+  </button>
+
+  <div class="template-grid" id="templateGrid">
+    <div class="loading"><i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite;"></i> Memuat template...</div>
+  </div>
+</div>
+
+<!-- MODAL BUAT TEMPLATE BARU (Tanpa Field) -->
+<div id="createTemplateModal" class="modal">
+  <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-header">
+      <div class="modal-title">Buat Template Baru</div>
+      <div class="modal-close" onclick="closeCreateTemplateModal()">&times;</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nama Dokumen (Indonesia) <span style="color:red;">*</span></label>
+        <input type="text" id="createNameId" placeholder="Contoh: Surat Aktif Kuliah">
+      </div>
+      <div class="form-group">
+        <label>Nama Dokumen (Inggris)</label>
+        <input type="text" id="createNameEn" placeholder="Contoh: Certificate of Enrollment">
+      </div>
+      <div class="form-group">
+        <label>File Template (.docx) <span style="color:red;">*</span></label>
+        <input type="file" id="createTemplateFile" accept=".docx">
+        <div style="font-size: 12px; color: #666; margin-top: 4px;">
+          <i class="bi bi-info-circle"></i> Gunakan placeholder <strong>{{field_name}}</strong> di file Word
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeCreateTemplateModal()">Batal</button>
+      <button class="btn-save" onclick="saveNewTemplate()">Simpan Template</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT TEMPLATE (Dengan Field + Preview) -->
+<div id="editTemplateModal" class="modal">
+  <div class="modal-content" style="max-width: 1000px; width: 95%;">
+    <div class="modal-header">
+      <div class="modal-title" id="editModalTitle">Edit Template</div>
+      <div class="modal-close" onclick="closeEditTemplateModal()">&times;</div>
+    </div>
+    <div class="modal-body edit-modal-body">
+      <div class="edit-modal-left">
+        <input type="hidden" id="editTemplateId">
+        <div class="form-group">
+          <label>Nama Dokumen (Indonesia)</label>
+          <input type="text" id="editNameId">
+        </div>
+        <div class="form-group">
+          <label>Nama Dokumen (Inggris)</label>
+          <input type="text" id="editNameEn">
+        </div>
+        <div class="form-group">
+          <label>Ganti File Template (.docx)</label>
+          <input type="file" id="editTemplateFile" accept=".docx">
+          <div style="font-size: 11px; color: #888;">Kosongkan jika tidak ingin mengganti file</div>
+        </div>
+        
+        <div class="fields-list">
+          <div class="fields-title">
+            <h4><i class="bi bi-list-ul"></i> Daftar Field</h4>
+            <button class="btn-add-field" onclick="showFieldModal()">
+              <i class="bi bi-plus"></i> Tambah Field
+            </button>
+          </div>
+          <div id="fieldsContainer">
+            <div style="text-align: center; padding: 20px; color: #999;">Belum ada field</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="edit-modal-right">
+        <div style="font-weight: 600; margin-bottom: 10px;">
+          <i class="bi bi-eye"></i> Preview Dokumen
+        </div>
+        <div id="previewContainer" class="preview-container">
+          <div class="preview-placeholder">
+            <i class="bi bi-file-earmark-pdf" style="font-size: 48px; opacity: 0.3;"></i>
+            <p>Preview akan muncul setelah template disimpan</p>
+          </div>
+        </div>
+        <button class="btn-preview" onclick="refreshPreview()" style="margin-top: 10px;">
+          <i class="bi bi-arrow-repeat"></i> Refresh Preview
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeEditTemplateModal()">Batal</button>
+      <button class="btn-save" onclick="updateTemplate()">Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FIELD - VERSI SIMPLIFIED -->
+<div id="fieldModal" class="modal">
+  <div class="modal-content" style="max-width: 500px;">
+    <div class="modal-header">
+      <div class="modal-title" id="fieldModalTitle">Tambah Field</div>
+      <div class="modal-close" onclick="closeFieldModal()">&times;</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editFieldId">
+      
+      <div class="form-group">
+        <label>Placeholder <span style="color:#dc3545;">*</span></label>
+        <select id="fieldName" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
+          <option value="">-- Pilih placeholder dari template --</option>
+        </select>
+        <div style="font-size: 11px; color: #666;">
+          ⚡ Akan menjadi <code id="placeholderPreview">{{nama}}</code> di form user
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Sumber Data</label>
+        <select id="dataSource" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
+          <option value="MANUAL">✍️ Manual - Diisi User</option>
+          <option value="AUTO_KRS">📚 Auto KRS - Dari Database Mahasiswa</option>
+          <option value="SYSTEM">⚙️ System - Generate Otomatis</option>
+          <option value="MASTER_SIGNATURE">🖊️ Tanda Tangan - Dari Master Signature</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Label (Tampilan di Form)</label>
+        <input type="text" id="fieldLabel" placeholder="Contoh: Nama Mahasiswa">
+      </div>
+
+      <div class="form-group" id="sourceKeyGroup" style="display:none;">
+        <label>Pilih Data</label>
+        <select id="sourceKey" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
+          <option value="">-- Pilih --</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="signatureSelectGroup" style="display:none;">
+        <label>Pilih Tanda Tangan Dosen</label>
+        <select id="signatureSelect" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
+          <option value="">-- Pilih Tanda Tangan --</option>
+        </select>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeFieldModal()">Batal</button>
+      <button class="btn-save" onclick="saveField()">Simpan Field</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// ============ STATE ============
+let currentTemplateId = null;
+let currentFields = [];
+let currentEditFieldId = null;
+let currentPreviewPdfUrl = null;
+
+const autoKrsOptions = [
+  { value: 'name', label: 'Nama Mahasiswa' },
+  { value: 'nim', label: 'NIM' },
+  { value: 'prodi', label: 'Program Studi' },
+  { value: 'ipk', label: 'IPK' },
+  { value: 'sks', label: 'Total SKS' }
+];
+
+const systemOptions = [
+  { value: 'tanggal', label: 'Tanggal (Otomatis)' },
+  { value: 'nomor_surat', label: 'Nomor Surat' },
+  { value: 'qr_code', label: 'QR Code' }
+];
+
+// ============ SESSION ============
+async function checkSession() {
+  try {
+    const res = await fetch('/api/me');
+    const data = await res.json();
+    if (!data.success || data.user.role !== 'admin') {
+      window.location.href = '/login.html';
+      return null;
+    }
+    document.getElementById('adminName').innerText = data.user.name || data.user.nim;
+    document.getElementById('adminAvatar').innerText = (data.user.name || data.user.nim).charAt(0).toUpperCase();
+    return data.user;
+  } catch (error) {
+    window.location.href = '/login.html';
+    return null;
+  }
+}
+
+async function logout() {
+  await fetch('/api/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+}
+
+// ============ LOAD TEMPLATES ============
+async function loadTemplates() {
+  const grid = document.getElementById('templateGrid');
+  try {
+    const res = await fetch('/api/templates');
+    const templates = await res.json();
+    if (!templates.length) {
+      grid.innerHTML = '<div class="empty-state"><i class="bi bi-folder2-open"></i><p>Belum ada template. Klik "Buat Template Baru" untuk memulai.</p></div>';
+      return;
+    }
+    grid.innerHTML = templates.map(t => `
+      <div class="template-card">
+        <div class="template-header">
+          <div class="template-icon"><i class="bi bi-file-earmark-word-fill"></i></div>
+          <div class="template-title">
+            <h3>${escapeHtml(t.name_id)}</h3>
+            <p>${escapeHtml(t.name_en || '-')}</p>
+          </div>
+        </div>
+        <div class="template-info">
+          <div><i class="bi bi-calendar"></i> Dibuat: ${new Date(t.created_at).toLocaleDateString()}</div>
+          <div><i class="bi bi-file-text"></i> File: ${t.filename || '-'}</div>
+        </div>
+        <div class="template-actions" onclick="event.stopPropagation()">
+          <button class="btn-edit" onclick="editTemplate(${t.id})"><i class="bi bi-pencil"></i> Edit</button>
+          <button class="btn-delete" onclick="deleteTemplate(${t.id})"><i class="bi bi-trash"></i> Hapus</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (error) {
+    grid.innerHTML = '<div class="empty-state"><i class="bi bi-exclamation-triangle"></i><p>Gagal memuat template</p></div>';
+  }
+}
+
+// ============ CREATE TEMPLATE ============
+function showCreateTemplateModal() {
+  document.getElementById('createNameId').value = '';
+  document.getElementById('createNameEn').value = '';
+  document.getElementById('createTemplateFile').value = '';
+  document.getElementById('createTemplateModal').style.display = 'flex';
+}
+
+function closeCreateTemplateModal() {
+  document.getElementById('createTemplateModal').style.display = 'none';
+}
+
+async function saveNewTemplate() {
+  const nameId = document.getElementById('createNameId').value.trim();
+  const nameEn = document.getElementById('createNameEn').value.trim();
+  const fileInput = document.getElementById('createTemplateFile');
+  
+  if (!nameId) {
+    alert('Nama dokumen wajib diisi');
+    return;
+  }
+  if (!fileInput.files.length) {
+    alert('File template wajib diupload');
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('name_id', nameId);
+  formData.append('name_en', nameEn);
+  formData.append('template_file', fileInput.files[0]);
+  
+  try {
+    const res = await fetch('/api/templates', { method: 'POST', body: formData });
+    const result = await res.json();
+    if (result.success || result.id) {
+      alert('✅ Template berhasil dibuat!');
+      closeCreateTemplateModal();
+      loadTemplates();
+    } else {
+      alert('Gagal: ' + (result.error || 'Unknown error'));
+    }
+  } catch(e) {
+    alert('Gagal terhubung ke server');
+  }
+}
+
+// ============ DELETE TEMPLATE ============
+async function deleteTemplate(id) {
+  if (!confirm('Hapus template ini? File dan semua field akan ikut terhapus.')) return;
+  try {
+    const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
+    const result = await res.json();
+    if (result.success) {
+      loadTemplates();
+    } else {
+      alert('Gagal menghapus');
+    }
+  } catch (error) {
+    alert('Gagal terhubung ke server');
+  }
+}
+
+// ============ EDIT TEMPLATE ============
+async function editTemplate(id) {
+  currentTemplateId = id;
+  document.getElementById('editTemplateId').value = id;
+  
+  try {
+    const res = await fetch(`/api/templates/${id}`);
+    const t = await res.json();
+    document.getElementById('editNameId').value = t.name_id || '';
+    document.getElementById('editNameEn').value = t.name_en || '';
+    document.getElementById('editTemplateFile').value = '';
+    
+    await loadFields(id);
+    document.getElementById('editTemplateModal').style.display = 'flex';
+    setTimeout(() => refreshPreview(), 100);
+  } catch (error) {
+    alert('Gagal memuat template');
+  }
+}
+
+function closeEditTemplateModal() {
+  document.getElementById('editTemplateModal').style.display = 'none';
+  if (currentPreviewPdfUrl) {
+    URL.revokeObjectURL(currentPreviewPdfUrl);
+    currentPreviewPdfUrl = null;
+  }
+}
+
+async function updateTemplate() {
+  const id = document.getElementById('editTemplateId').value;
+  const nameId = document.getElementById('editNameId').value.trim();
+  const nameEn = document.getElementById('editNameEn').value.trim();
+  const fileInput = document.getElementById('editTemplateFile');
+  
+  if (!nameId) {
+    alert('Nama dokumen wajib diisi');
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('name_id', nameId);
+  formData.append('name_en', nameEn);
+  if (fileInput.files.length > 0) {
+    formData.append('template_file', fileInput.files[0]);
+  }
+  
+  try {
+    const res = await fetch(`/api/templates/${id}`, { method: 'PUT', body: formData });
+    const result = await res.json();
+    if (result.success) {
+      alert('✅ Template berhasil diupdate');
+      closeEditTemplateModal();
+      loadTemplates();
+    } else {
+      alert('Gagal: ' + (result.error || 'Unknown error'));
+    }
+  } catch(e) {
+    alert('Gagal terhubung ke server');
+  }
+}
+
+// ============ PREVIEW PDF ============
+async function refreshPreview() {
+  const templateId = document.getElementById('editTemplateId').value;
+  if (!templateId) return;
+  
+  const container = document.getElementById('previewContainer');
+  container.innerHTML = '<div class="preview-placeholder"><div class="spinner"></div><p>Memuat preview...</p></div>';
+  
+  try {
+    const res = await fetch(`/api/preview-pdf/${templateId}`);
+    if (!res.ok) throw new Error('Preview gagal');
+    
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    
+    if (currentPreviewPdfUrl) URL.revokeObjectURL(currentPreviewPdfUrl);
+    currentPreviewPdfUrl = url;
+    
+    container.innerHTML = `<iframe src="${url}" title="Preview Dokumen"></iframe>`;
+  } catch(e) {
+    container.innerHTML = `<div class="preview-placeholder" style="color: red;"><i class="bi bi-exclamation-triangle" style="font-size: 32px;"></i><p>Gagal load preview: ${e.message}</p></div>`;
+  }
+}
+
+// ============ FIELDS CRUD ============
+async function loadFields(templateId) {
+  try {
+    const res = await fetch(`/api/templates/${templateId}/fields`);
+    currentFields = await res.json();
+    renderFieldsList();
+  } catch (error) {
+    currentFields = [];
+    renderFieldsList();
+  }
+}
+
+function renderFieldsList() {
+  const container = document.getElementById('fieldsContainer');
+  if (!currentFields.length) {
+    container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Belum ada field. Klik "Tambah Field".</div>';
+    return;
+  }
+  
+  // Pisahkan field MANUAL dan non-MANUAL
+  const manualFields = currentFields.filter(f => f.data_source === 'MANUAL');
+  const nonManualFields = currentFields.filter(f => f.data_source !== 'MANUAL');
+  
+  // Urutkan manualFields berdasarkan field_order
+  const sortedManual = [...manualFields].sort((a, b) => {
+    const oA = a.field_order !== null ? a.field_order : 9999;
+    const oB = b.field_order !== null ? b.field_order : 9999;
+    return oA - oB;
+  });
+  
+  let html = '';
+  
+  // Render MANUAL fields (dengan tombol move)
+  if (sortedManual.length) {
+    html += `<div style="margin-bottom: 16px;"><strong style="color: #006A42;">📝 Field Input User (dapat diurutkan)</strong></div>`;
+    html += sortedManual.map((f, index) => {
+      const displayOrder = f.field_order !== null ? f.field_order : (index + 1);
+      const bracketFormat = `{{${f.field_name}}}`;
+      
+      return `
+        <div class="field-item" data-field-id="${f.id}">
+          <div class="field-info">
+            <div class="field-name">
+              <span class="field-order-number">${displayOrder}.</span>
+              <code style="background:#e9ecef; padding:2px 6px; border-radius:4px;">${bracketFormat}</code>
+              <span class="source-info manual">Manual</span>
+            </div>
+            <div class="field-meta">${escapeHtml(f.label || '-')}</div>
+          </div>
+          <div class="field-actions">
+            <button class="btn-move-up" onclick="moveField(${f.id}, 'up')" ${index === 0 ? 'disabled' : ''} title="Pindah ke atas">
+              <i class="bi bi-arrow-up"></i>
+            </button>
+            <button class="btn-move-down" onclick="moveField(${f.id}, 'down')" ${index === sortedManual.length-1 ? 'disabled' : ''} title="Pindah ke bawah">
+              <i class="bi bi-arrow-down"></i>
+            </button>
+            <button class="btn-edit" style="background:none; color:#0d6efd; border:none; cursor:pointer; padding:4px 8px;" onclick="editField(${f.id})" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn-delete" style="background:none; color:#dc3545; border:none; cursor:pointer; padding:4px 8px;" onclick="deleteField(${f.id})" title="Hapus">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  
+  // Render non-MANUAL fields (tanpa tombol move)
+  if (nonManualFields.length) {
+    html += `<div style="margin: 16px 0 8px;"><strong style="color: #888;">⚙️ Field Sistem (tidak dapat diurutkan)</strong></div>`;
+    html += nonManualFields.map(f => {
+      let bracketFormat = '';
+      let sourceText = '';
+      let sourceClass = '';
+      
+      if (f.data_source === 'AUTO_KRS') {
+        bracketFormat = `{{${f.field_name}}}`;
+        sourceText = 'Auto KRS';
+        sourceClass = 'auto';
+      } else if (f.data_source === 'SYSTEM') {
+        bracketFormat = `{{${f.field_name}}}`;
+        sourceText = 'System';
+        sourceClass = 'system';
+      } else if (f.data_source === 'MASTER_SIGNATURE') {
+        bracketFormat = `{%${f.field_name}}`;
+        sourceText = 'Tanda Tangan';
+        sourceClass = 'signature';
+      } else {
+        bracketFormat = `{{${f.field_name}}}`;
+        sourceText = 'Manual';
+        sourceClass = 'manual';
+      }
+      
+      return `
+        <div class="field-item" data-field-id="${f.id}">
+          <div class="field-info">
+            <div class="field-name">
+              <code style="background:#e9ecef; padding:2px 6px; border-radius:4px;">${bracketFormat}</code>
+              <span class="source-info ${sourceClass}">${sourceText}</span>
+            </div>
+            <div class="field-meta">${escapeHtml(f.label || '-')}</div>
+          </div>
+          <div class="field-actions">
+            <button class="btn-edit" style="background:none; color:#0d6efd; border:none; cursor:pointer; padding:4px 8px;" onclick="editField(${f.id})" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn-delete" style="background:none; color:#dc3545; border:none; cursor:pointer; padding:4px 8px;" onclick="deleteField(${f.id})" title="Hapus">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  
+  container.innerHTML = html;
+}
+
+// ============ FIELD MODAL ============
+async function showFieldModal() {
+  currentEditFieldId = null;
+  document.getElementById('fieldModalTitle').innerText = 'Tambah Field';
+  document.getElementById('editFieldId').value = '';
+  document.getElementById('fieldLabel').value = '';
+  
+  // Reset data source ke MANUAL
+  document.getElementById('dataSource').value = 'MANUAL';
+  document.getElementById('sourceKeyGroup').style.display = 'none';
+  document.getElementById('signatureSelectGroup').style.display = 'none';
+  
+  // Tampilkan label group (karena default MANUAL)
+  const labelGroup = document.getElementById('fieldLabel').closest('.form-group');
+  labelGroup.style.display = 'block';
+  
+  // Load placeholders dari template
+  await loadPlaceholdersFromTemplate();
+  
+  // Event listener untuk perubahan Sumber Data
+  document.getElementById('dataSource').onchange = () => {
+    const source = document.getElementById('dataSource').value;
+    const labelGroup = document.getElementById('fieldLabel').closest('.form-group');
+    
+    if (source === 'MANUAL') {
+      labelGroup.style.display = 'block';
+      document.getElementById('sourceKeyGroup').style.display = 'none';
+      document.getElementById('signatureSelectGroup').style.display = 'none';
+    } 
+    else if (source === 'AUTO_KRS' || source === 'SYSTEM') {
+      labelGroup.style.display = 'none';
+      document.getElementById('sourceKeyGroup').style.display = 'block';
+      document.getElementById('signatureSelectGroup').style.display = 'none';
+      toggleSourceKey();
+    }
+    else if (source === 'MASTER_SIGNATURE') {
+      labelGroup.style.display = 'none';
+      document.getElementById('sourceKeyGroup').style.display = 'none';
+      document.getElementById('signatureSelectGroup').style.display = 'block';
+      loadSignatureOptions();
+    }
+  };
+  
+  // Trigger manual untuk set initial state
+  document.getElementById('dataSource').onchange();
+  
+  loadSignatureOptions();
+  document.getElementById('fieldModal').style.display = 'flex';
+}
+
+async function editField(fieldId) {
+  const field = currentFields.find(f => f.id === fieldId);
+  if (!field) return;
+  
+  currentEditFieldId = fieldId;
+  document.getElementById('fieldModalTitle').innerText = 'Edit Field';
+  document.getElementById('editFieldId').value = field.id;
+  document.getElementById('fieldLabel').value = field.label || '';
+  
+  let dataSourceValue = field.data_source || 'MANUAL';
+  document.getElementById('dataSource').value = dataSourceValue;
+  
+  const labelGroup = document.getElementById('fieldLabel').closest('.form-group');
+  
+  if (dataSourceValue === 'MANUAL') {
+    labelGroup.style.display = 'block';
+  } else {
+    labelGroup.style.display = 'none';
+  }
+  
+  if (dataSourceValue === 'AUTO_KRS' || dataSourceValue === 'SYSTEM') {
+    document.getElementById('sourceKeyGroup').style.display = 'block';
+    document.getElementById('signatureSelectGroup').style.display = 'none';
+    toggleSourceKey(field.source_key);
+  }
+  else if (dataSourceValue === 'MASTER_SIGNATURE') {
+    document.getElementById('sourceKeyGroup').style.display = 'none';
+    document.getElementById('signatureSelectGroup').style.display = 'block';
+    await loadSignatureOptions();
+    if (field.source_key) {
+      document.getElementById('signatureSelect').value = field.source_key;
+    }
+  }
+  else {
+    document.getElementById('sourceKeyGroup').style.display = 'none';
+    document.getElementById('signatureSelectGroup').style.display = 'none';
+  }
+  
+  const fieldNameSelect = document.getElementById('fieldName');
+  for(let i = 0; i < fieldNameSelect.options.length; i++) {
+    if(fieldNameSelect.options[i].value === field.field_name) {
+      fieldNameSelect.selectedIndex = i;
+      break;
+    }
+  }
+  
+  document.getElementById('fieldModal').style.display = 'flex';
+}
+
+function closeFieldModal() {
+  document.getElementById('fieldModal').style.display = 'none';
+}
+
+async function deleteField(fieldId) {
+  console.log('🗑️ Hapus field ID:', fieldId);
+  
+  if (!confirm('Hapus field ini? Data field akan hilang dari template.')) return;
+  
+  try {
+    const res = await fetch(`/api/fields/${fieldId}`, { method: 'DELETE' });
+    const result = await res.json();
+    
+    console.log('Response delete:', result);
+    
+    if (result.success) {
+      const templateId = document.getElementById('editTemplateId').value;
+      await loadFields(templateId);
+      alert('✅ Field berhasil dihapus');
+    } else {
+      alert('Gagal menghapus field: ' + (result.error || 'Unknown error'));
+    }
+  } catch (error) {
+    console.error('Delete field error:', error);
+    alert('Gagal terhubung ke server');
+  }
+}
+
+function toggleSourceKey(selectedValue = '') {
+  const source = document.getElementById('dataSource').value;
+  const group = document.getElementById('sourceKeyGroup');
+  const select = document.getElementById('sourceKey');
+  if (source === 'MANUAL') {
+    group.style.display = 'none';
+    return;
+  }
+  group.style.display = 'block';
+  const options = source === 'AUTO_KRS' ? autoKrsOptions : systemOptions;
+  select.innerHTML = '<option value="">Pilih Source Key</option>' + 
+    options.map(opt => `<option value="${opt.value}" ${selectedValue === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('');
+}
+
+async function saveField() {
+  const templateId = document.getElementById('editTemplateId').value;
+  if (!templateId) {
+    alert('Simpan template terlebih dahulu sebelum menambah field');
+    return;
+  }
+  
+  const fieldNameSelect = document.getElementById('fieldName');
+  const fieldName = fieldNameSelect.value.trim();
+  const label = document.getElementById('fieldLabel').value.trim();
+  let dataSource = document.getElementById('dataSource').value;
+  let sourceKey = document.getElementById('sourceKey').value;
+  const editId = document.getElementById('editFieldId').value;
+  
+  if (!fieldName) {
+    alert('Pilih Field Name dari dropdown');
+    return;
+  }
+  
+  if (dataSource === 'MANUAL' && !label) {
+    alert('Label wajib diisi untuk field Manual');
+    return;
+  }
+  
+  if (dataSource === 'MASTER_SIGNATURE') {
+    const signatureId = document.getElementById('signatureSelect').value;
+    if (!signatureId) {
+      alert('Pilih tanda tangan terlebih dahulu');
+      return;
+    }
+    sourceKey = signatureId;
+  }
+  
+  // Cek duplikasi field_name (abaikan jika edit field yang sama)
+  if (!editId && currentFields.some(f => f.field_name === fieldName)) {
+    alert(`Field name "${fieldName}" sudah digunakan.`);
+    return;
+  }
+  
+  const fieldData = {
+    template_id: templateId,
+    field_name: fieldName,
+    label: dataSource === 'MANUAL' ? label : '',
+    field_type: dataSource === 'MASTER_SIGNATURE' ? 'signature' : 'text',
+    data_source: dataSource,
+    source_key: sourceKey || null,
+    field_order: null
+  };
+  
+  try {
+    let res;
+    if (editId) {
+      res = await fetch(`/api/fields/${editId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fieldData)
+      });
+    } else {
+      res = await fetch('/api/fields', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fieldData)
+      });
+    }
+    const result = await res.json();
+    if (result.success) {
+      await loadFields(templateId);
+      closeFieldModal();
+      alert('Field berhasil disimpan');
+    } else {
+      alert('Gagal menyimpan field: ' + (result.error || 'Unknown error'));
+    }
+  } catch (error) {
+    console.error('Save field error:', error);
+    alert('Gagal terhubung ke server');
+  }
+}
+
+// ============ MOVE FIELD (Ubah Urutan) ============
+async function moveField(fieldId, direction) {
+  console.log('🔽 moveField dipanggil:', fieldId, direction);
+  
+  // Ambil hanya field MANUAL
+  const manualFields = currentFields.filter(f => f.data_source === 'MANUAL');
+  
+  // Urutkan manualFields
+  const sorted = [...manualFields].sort((a, b) => {
+    const oA = a.field_order !== null ? a.field_order : 9999;
+    const oB = b.field_order !== null ? b.field_order : 9999;
+    return oA - oB;
+  });
+  
+  const currentIndex = sorted.findIndex(f => f.id === fieldId);
+  if (currentIndex === -1) {
+    console.log('Field tidak ditemukan di manualFields');
+    return;
+  }
+  
+  const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+  if (targetIndex < 0 || targetIndex >= sorted.length) {
+    console.log('Sudah di posisi paling', direction === 'up' ? 'atas' : 'bawah');
+    return;
+  }
+  
+  const currentField = sorted[currentIndex];
+  const targetField = sorted[targetIndex];
+  
+  // Assign order berdasarkan posisi index (1,2,3,...)
+  const newCurrentOrder = targetIndex + 1;
+  const newTargetOrder = currentIndex + 1;
+  
+  console.log('Tukar order:', currentField.field_name, 'dari', currentField.field_order, 'ke', newCurrentOrder);
+  console.log('dan:', targetField.field_name, 'dari', targetField.field_order, 'ke', newTargetOrder);
+  
+  // Disable tombol
+  const btns = document.querySelectorAll(`[onclick*="moveField(${fieldId},"]`);
+  btns.forEach(btn => btn.disabled = true);
+  
+  try {
+    const [res1, res2] = await Promise.all([
+      fetch(`/api/fields/${currentField.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...currentField, field_order: newCurrentOrder })
+      }),
+      fetch(`/api/fields/${targetField.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...targetField, field_order: newTargetOrder })
+      })
+    ]);
+    
+    const result1 = await res1.json();
+    const result2 = await res2.json();
+    
+    if (result1.success && result2.success) {
+      console.log('✅ Urutan berhasil diubah');
+      const templateId = document.getElementById('editTemplateId').value;
+      await loadFields(templateId);
+    } else {
+      console.error('Gagal update:', result1.error, result2.error);
+      alert('Gagal mengubah urutan field');
+    }
+  } catch (error) {
+    console.error('Move field error:', error);
+    alert('Gagal terhubung ke server: ' + error.message);
+  } finally {
+    btns.forEach(btn => btn.disabled = false);
+  }
+}
+
+// ============ SIGNATURE OPTIONS ============
+async function loadSignatureOptions() {
+  try {
+    const response = await fetch('/api/signatures');
+    const signatures = await response.json();
+    const select = document.getElementById('signatureSelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Pilih Tanda Tangan --</option>';
+    const activeSignatures = signatures.filter(s => s.is_active === 1);
+    activeSignatures.forEach(sig => {
+      const option = document.createElement('option');
+      option.value = sig.id;
+      option.textContent = `${sig.nama_dosen} (${sig.jabatan})`;
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Load signatures error:', error);
+  }
+}
+
+// ============ UTILITIES ============
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ============ SCAN PLACEHOLDER DARI DOCX ============
+async function scanDocxPlaceholders(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const arrayBuffer = e.target.result;
+      const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+      const text = result.value;
+      
+      console.log('Teks hasil ekstraksi:', text);
+      
+      const regex = /{%?([^}%]+)%?}/g;
+      const placeholders = [];
+      let match;
+      
+      while ((match = regex.exec(text)) !== null) {
+        let fieldName = match[1].trim();
+        if (!placeholders.some(p => p.name === fieldName)) {
+          placeholders.push({ name: fieldName });
+        }
+      }
+      
+      console.log('Placeholders ditemukan:', placeholders);
+      resolve(placeholders);
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// ============ LOAD PLACEHOLDERS FROM TEMPLATE ============
+async function loadPlaceholdersFromTemplate() {
+  const fileInput = document.getElementById('editTemplateFile');
+  const templateId = document.getElementById('editTemplateId').value;
+  
+  let file = null;
+  
+  if (fileInput.files.length > 0) {
+    file = fileInput.files[0];
+  } 
+  else if (templateId) {
+    try {
+      const res = await fetch(`/api/templates/${templateId}`);
+      const template = await res.json();
+      if (template.file_path) {
+        const fileRes = await fetch(`/${template.file_path}`);
+        const blob = await fileRes.blob();
+        file = new File([blob], template.filename, { type: blob.type });
+      }
+    } catch(e) {
+      console.error('Gagal download template:', e);
+    }
+  }
+  
+  const fieldNameSelect = document.getElementById('fieldName');
+  if (!file) {
+    console.log('Tidak ada file untuk scan');
+    fieldNameSelect.innerHTML = '<option value="">-- Tidak ada placeholder terdeteksi --</option>';
+    return;
+  }
+  
+  try {
+    const placeholders = await scanDocxPlaceholders(file);
+    fieldNameSelect.innerHTML = '<option value="">-- Pilih placeholder dari template --</option>';
+    
+    if (placeholders.length === 0) {
+      fieldNameSelect.innerHTML = '<option value="">-- Tidak ada placeholder ditemukan --</option>';
+    } else {
+      placeholders.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.name;
+        option.textContent = p.name;
+        fieldNameSelect.appendChild(option);
+      });
+    }
+  } catch(e) {
+    console.error('Load placeholders error:', e);
+    fieldNameSelect.innerHTML = '<option value="">-- Gagal memuat placeholder --</option>';
+  }
+}
+
+// ============ EVENT LISTENERS ============
+document.addEventListener('DOMContentLoaded', async () => {
+  const admin = await checkSession();
+  if (admin) {
+    await loadTemplates();
+    await loadSignatureOptions();
+  }
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+  document.getElementById('createTemplateBtn').addEventListener('click', showCreateTemplateModal);
+  document.getElementById('dataSource').addEventListener('change', () => toggleSourceKey());
+  
+  window.onclick = function(e) {
+    if (e.target === document.getElementById('createTemplateModal')) closeCreateTemplateModal();
+    if (e.target === document.getElementById('editTemplateModal')) closeEditTemplateModal();
+    if (e.target === document.getElementById('fieldModal')) closeFieldModal();
+  };
+});
+
+</script>
+</body>
+</html>

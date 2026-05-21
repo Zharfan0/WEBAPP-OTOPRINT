@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Master Signature - OtoPrint</title>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  background: #f0f2f5;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 260px;
+  background: #1a1a2e;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+.logo {
+  padding: 24px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 20px;
+}
+
+.logo img {
+  max-width: 120px;
+  height: auto;
+}
+
+.logo h3 {
+  color: white;
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+.menu-item {
+  padding: 14px 24px;
+  cursor: pointer;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+.menu-item i {
+  font-size: 20px;
+  width: 24px;
+}
+
+.menu-item:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.menu-item.active {
+  background: #006A42;
+  color: white;
+  border-left: 4px solid #FFD700;
+}
+
+.logout {
+  margin: 20px;
+  margin-top: auto;
+  margin-bottom: 30px;
+  padding: 12px;
+  border: 2px solid #dc3545;
+  text-align: center;
+  color: #dc3545;
+  cursor: pointer;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.logout:hover {
+  background: #dc3545;
+  color: white;
+}
+
+/* MAIN */
+.main {
+  flex: 1;
+  margin-left: 260px;
+  padding: 30px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.admin-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: white;
+  padding: 8px 20px;
+  border-radius: 30px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.admin-avatar {
+  width: 40px;
+  height: 40px;
+  background: #006A42;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+/* BUTTON CREATE */
+.top-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.btn-create {
+  background: #006A42;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-box {
+  flex: 1;
+  max-width: 300px;
+  display: flex;
+  gap: 8px;
+}
+
+.search-box input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.search-box button {
+  background: #0d6efd;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* TABLE */
+.table-container {
+  background: white;
+  border-radius: 16px;
+  overflow: auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+th {
+  text-align: left;
+  padding: 14px 16px;
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+tr:hover {
+  background: #f8f9fa;
+}
+
+.signature-preview {
+  width: 80px;
+  height: 40px;
+  object-fit: contain;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #f5f5f5;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-active {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-inactive {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-edit, .btn-delete {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-edit {
+  background: #0d6efd;
+  color: white;
+}
+
+.btn-delete {
+  background: #dc3545;
+  color: white;
+}
+
+/* MODAL */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 20px;
+  max-width: 500px;
+  width: 90%;
+  padding: 28px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.modal-close {
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.form-group input[type="file"] {
+  padding: 8px;
+}
+
+.image-preview {
+  margin-top: 10px;
+  max-width: 200px;
+  max-height: 80px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  display: none;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.btn-save {
+  background: #006A42;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-cancel {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: #999;
+}
+
+.empty-state i {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <img src="/assets/images/logo-umy3.png" alt="UMY Logo" onerror="this.style.display='none'">
+  </div>
+
+    <div class="menu-item" onclick="window.location.href='/admin/insight.html'">
+        <i class="bi bi-graph-up"></i> Insight
+    </div>
+    <div class="menu-item" onclick="window.location.href='/admin/logs.html'">
+        <i class="bi bi-list-ul"></i> Log Cetak
+    </div>
+    <div class="menu-item" onclick="window.location.href='/admin/templates_V1.html'">
+      <i class="bi bi-file-earmark-word"></i> Template V1
+    </div>
+    <div class="menu-item" onclick="window.location.href='/admin/templates_V2.html'">
+      <i class="bi bi-file-earmark-word"></i> Template V2
+    </div>
+    <div class="menu-item" onclick="window.location.href='/admin/maintenance.html'">
+        <i class="bi bi-gear"></i> Maintenance
+    </div>
+  <div class="menu-item active" onclick="window.location.href='#'">
+        <i class="bi bi-pen"></i> Master Signature
+    </div>
+
+  <div class="logout" id="logoutBtn">
+    <i class="bi bi-box-arrow-right"></i> Logout
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="header">
+    <div class="title">Master Signature</div>
+    <div class="admin-info">
+      <div class="admin-avatar" id="adminAvatar">A</div>
+      <span class="admin-name" id="adminName">Loading...</span>
+    </div>
+  </div>
+
+  <div class="top-actions">
+    <button class="btn-create" id="createBtn">
+      <i class="bi bi-plus-circle"></i> Tambah Signature
+    </button>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Cari nama, NIP, atau jabatan...">
+      <button onclick="searchSignatures()"><i class="bi bi-search"></i></button>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <div id="tableContent">
+      <div class="loading"><i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite;"></i> Memuat data...</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CREATE/EDIT -->
+<div id="signatureModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Tambah Signature</div>
+      <div class="modal-close" onclick="closeModal()">&times;</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId">
+      
+      <div class="form-group">
+        <label>Nama Dosen <span style="color:#dc3545;">*</span></label>
+        <input type="text" id="namaDosen" placeholder="Contoh: Dr. Nurwahyu Alamsyah, S.Kom., M.Kom., M.IM., Ph.D">
+      </div>
+      
+      <div class="form-group">
+        <label>NIP <span style="color:#dc3545;">*</span></label>
+        <input type="text" id="nip" placeholder="Nomor Induk Pegawai">
+      </div>
+      
+      <div class="form-group">
+        <label>Jabatan <span style="color:#dc3545;">*</span></label>
+        <select id="jabatan">
+          <option value="Kaprodi">Kaprodi</option>
+          <option value="Dekan">Dekan</option>
+          <option value="DPA">DPA (Dosen Pembimbing Akademik)</option>
+          <option value="Pembimbing 1">Pembimbing 1</option>
+          <option value="Pembimbing 2">Pembimbing 2</option>
+          <option value="Dosen Penguji">Dosen Penguji</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+        <input type="text" id="jabatanLainnya" placeholder="Jika pilih Lainnya, isi di sini" style="margin-top: 8px; display: none;">
+      </div>
+      
+      <div class="form-group">
+        <label>Upload Tanda Tangan <span style="color:#dc3545;">*</span></label>
+        <input type="file" id="signatureImage" accept="image/png,image/jpeg,image/jpg">
+        <div style="font-size: 12px; color: #666; margin-top: 4px;">
+          Format: PNG/JPG, maks 2MB, ukuran rekomendasi 300x100px
+        </div>
+        <img id="imagePreview" class="image-preview" alt="Preview">
+      </div>
+      
+      <div class="form-group">
+        <label>Status</label>
+        <select id="isActive">
+          <option value="1">Aktif</option>
+          <option value="0">Tidak Aktif</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Keterangan (Opsional)</label>
+        <textarea id="keterangan" rows="2" placeholder="Catatan tambahan..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Batal</button>
+      <button class="btn-save" onclick="saveSignature()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+let allSignatures = [];
+let currentFilter = '';
+
+// ============ SESSION CHECK ============
+async function checkSession() {
+    try {
+        const response = await fetch('/api/me');
+        const data = await response.json();
+        
+        if (!data.success || data.user.role !== 'admin') {
+            window.location.href = '/login.html';
+            return null;
+        }
+        
+        document.getElementById('adminName').innerText = data.user.name || data.user.nim;
+        document.getElementById('adminAvatar').innerText = (data.user.name || data.user.nim).charAt(0).toUpperCase();
+        
+        return data.user;
+    } catch (error) {
+        window.location.href = '/login.html';
+        return null;
+    }
+}
+
+// ============ LOGOUT ============
+async function logout() {
+    await fetch('/api/logout', { method: 'POST' });
+    sessionStorage.clear();
+    window.location.href = '/login.html';
+}
+
+// ============ LOAD SIGNATURES ============
+async function loadSignatures() {
+    const container = document.getElementById('tableContent');
+    
+    try {
+        const response = await fetch('/api/signatures');
+        allSignatures = await response.json();
+        renderTable();
+    } catch (error) {
+        console.error('Load signatures error:', error);
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-exclamation-triangle"></i>
+                <p>Gagal memuat data. Pastikan server backend berjalan.</p>
+            </div>
+        `;
+    }
+}
+
+// ============ RENDER TABLE ============
+function renderTable() {
+    const container = document.getElementById('tableContent');
+    
+    let filtered = allSignatures;
+    if (currentFilter) {
+        filtered = allSignatures.filter(s => 
+            s.nama_dosen?.toLowerCase().includes(currentFilter) ||
+            s.nip?.toLowerCase().includes(currentFilter) ||
+            s.jabatan?.toLowerCase().includes(currentFilter)
+        );
+    }
+    
+    if (!filtered.length) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <p>Belum ada data signature. Klik "Tambah Signature" untuk memulai.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama Dosen</th>
+                    <th>NIP</th>
+                    <th>Jabatan</th>
+                    <th>Tanda Tangan</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${filtered.map((sig, idx) => `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${escapeHtml(sig.nama_dosen)}</td>
+                        <td>${escapeHtml(sig.nip)}</td>
+                        <td>${escapeHtml(sig.jabatan)}</td>
+                        <td><img src="${sig.signature_image}" class="signature-preview" onerror="this.style.display='none'"></td>
+                        <td><span class="status-badge ${sig.is_active ? 'status-active' : 'status-inactive'}">${sig.is_active ? 'Aktif' : 'Tidak Aktif'}</span></td>
+                        <td class="action-buttons">
+                            <button class="btn-edit" onclick="editSignature(${sig.id})"><i class="bi bi-pencil"></i> Edit</button>
+                            <button class="btn-delete" onclick="deleteSignature(${sig.id})"><i class="bi bi-trash"></i> Hapus</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function searchSignatures() {
+    currentFilter = document.getElementById('searchInput').value.toLowerCase();
+    renderTable();
+}
+
+// ============ EDIT SIGNATURE ============
+async function editSignature(id) {
+    try {
+        const response = await fetch(`/api/signatures/${id}`);
+        const sig = await response.json();
+        
+        document.getElementById('modalTitle').innerText = 'Edit Signature';
+        document.getElementById('editId').value = sig.id;
+        document.getElementById('namaDosen').value = sig.nama_dosen || '';
+        document.getElementById('nip').value = sig.nip || '';
+        
+        // Set jabatan
+        const jabatanSelect = document.getElementById('jabatan');
+        const jabatanLainnya = document.getElementById('jabatanLainnya');
+        const knownJabatan = ['Kaprodi', 'Dekan', 'DPA', 'Pembimbing 1', 'Pembimbing 2', 'Dosen Penguji', 'Lainnya'];
+        if (knownJabatan.includes(sig.jabatan)) {
+            jabatanSelect.value = sig.jabatan;
+            jabatanLainnya.style.display = 'none';
+        } else {
+            jabatanSelect.value = 'Lainnya';
+            jabatanLainnya.style.display = 'block';
+            jabatanLainnya.value = sig.jabatan;
+        }
+        
+        document.getElementById('isActive').value = sig.is_active ? '1' : '0';
+        document.getElementById('keterangan').value = sig.keterangan || '';
+        document.getElementById('signatureImage').value = '';
+        
+        // Show preview if exists
+        if (sig.signature_image) {
+            const preview = document.getElementById('imagePreview');
+            preview.src = sig.signature_image;
+            preview.style.display = 'block';
+        } else {
+            document.getElementById('imagePreview').style.display = 'none';
+        }
+        
+        document.getElementById('signatureModal').style.display = 'flex';
+    } catch (error) {
+        console.error('Edit signature error:', error);
+        alert('Gagal memuat data signature');
+    }
+}
+
+// ============ DELETE SIGNATURE ============
+async function deleteSignature(id) {
+    if (!confirm('Hapus signature ini? Tanda tangan akan dihapus dan tidak bisa dikembalikan.')) return;
+    
+    try {
+        const response = await fetch(`/api/signatures/${id}`, { method: 'DELETE' });
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Signature berhasil dihapus');
+            loadSignatures();
+        } else {
+            alert('Gagal menghapus signature');
+        }
+    } catch (error) {
+        console.error('Delete signature error:', error);
+        alert('Gagal terhubung ke server');
+    }
+}
+
+// ============ SAVE SIGNATURE ============
+async function saveSignature() {
+    const id = document.getElementById('editId').value;
+    const namaDosen = document.getElementById('namaDosen').value.trim();
+    const nip = document.getElementById('nip').value.trim();
+    let jabatan = document.getElementById('jabatan').value;
+    const jabatanLainnya = document.getElementById('jabatanLainnya').value.trim();
+    const fileInput = document.getElementById('signatureImage');
+    const isActive = document.getElementById('isActive').value;
+    const keterangan = document.getElementById('keterangan').value;
+    
+    if (!namaDosen || !nip) {
+        alert('Nama Dosen dan NIP wajib diisi');
+        return;
+    }
+    
+    if (jabatan === 'Lainnya') {
+        if (!jabatanLainnya) {
+            alert('Isi jabatan jika memilih Lainnya');
+            return;
+        }
+        jabatan = jabatanLainnya;
+    }
+    
+    const formData = new FormData();
+    formData.append('nama_dosen', namaDosen);
+    formData.append('nip', nip);
+    formData.append('jabatan', jabatan);
+    formData.append('is_active', isActive);
+    formData.append('keterangan', keterangan);
+    
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        if (file.type !== 'image/png' && file.type !== 'image/jpeg' && file.type !== 'image/jpg') {
+            alert('File harus berupa PNG, JPG, atau JPEG');
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            alert('Ukuran file maksimal 2MB');
+            return;
+        }
+        formData.append('signature_image', file);
+    } else if (!id) {
+        alert('File tanda tangan wajib diupload');
+        return;
+    }
+    
+    const url = id ? `/api/signatures/${id}` : '/api/signatures';
+    const method = id ? 'PUT' : 'POST';
+    
+    try {
+        const response = await fetch(url, { method, body: formData });
+        const result = await response.json();
+        
+        if (result.success || result.id) {
+            alert(id ? 'Signature berhasil diupdate' : 'Signature berhasil ditambahkan');
+            closeModal();
+            loadSignatures();
+        } else {
+            alert('Gagal menyimpan: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Save signature error:', error);
+        alert('Gagal terhubung ke server');
+    }
+}
+
+// ============ JABATAN CHANGE HANDLER ============
+document.getElementById('jabatan').addEventListener('change', function() {
+    const lainnya = document.getElementById('jabatanLainnya');
+    if (this.value === 'Lainnya') {
+        lainnya.style.display = 'block';
+        lainnya.focus();
+    } else {
+        lainnya.style.display = 'none';
+        lainnya.value = '';
+    }
+});
+
+// ============ IMAGE PREVIEW ============
+document.getElementById('signatureImage').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('imagePreview');
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            preview.src = event.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.style.display = 'none';
+        preview.src = '';
+    }
+});
+
+// ============ MODAL CONTROL ============
+function openCreateModal() {
+    document.getElementById('modalTitle').innerText = 'Tambah Signature';
+    document.getElementById('editId').value = '';
+    document.getElementById('namaDosen').value = '';
+    document.getElementById('nip').value = '';
+    document.getElementById('jabatan').value = 'Kaprodi';
+    document.getElementById('jabatanLainnya').style.display = 'none';
+    document.getElementById('jabatanLainnya').value = '';
+    document.getElementById('isActive').value = '1';
+    document.getElementById('keterangan').value = '';
+    document.getElementById('signatureImage').value = '';
+    document.getElementById('imagePreview').style.display = 'none';
+    document.getElementById('imagePreview').src = '';
+    document.getElementById('signatureModal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('signatureModal').style.display = 'none';
+}
+
+// ============ INIT ============
+document.addEventListener('DOMContentLoaded', async () => {
+    const admin = await checkSession();
+    if (admin) {
+        await loadSignatures();
+    }
+    
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('createBtn').addEventListener('click', openCreateModal);
+    
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('signatureModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    };
+});
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+</body>
+</html>

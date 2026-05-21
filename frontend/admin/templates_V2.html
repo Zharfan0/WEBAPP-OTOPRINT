@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Template V2 - OtoPrint</title>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  background: #f0f2f5;
+}
+
+.sidebar {
+  width: 260px;
+  background: #1a1a2e;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  padding: 24px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 20px;
+}
+
+.logo img {
+  max-width: 120px;
+  height: auto;
+}
+
+.logo h3 {
+  color: white;
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+.menu-item {
+  padding: 14px 24px;
+  cursor: pointer;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+.menu-item i {
+  font-size: 20px;
+  width: 24px;
+}
+
+.menu-item:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.menu-item.active {
+  background: #006A42;
+  color: white;
+  border-left: 4px solid #FFD700;
+}
+
+.logout {
+  margin: 20px;
+  margin-top: auto;
+  margin-bottom: 30px;
+  padding: 12px;
+  border: 2px solid #dc3545;
+  text-align: center;
+  color: #dc3545;
+  cursor: pointer;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.logout:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.main {
+  flex: 1;
+  margin-left: 260px;
+  padding: 30px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.title small {
+  font-size: 14px;
+  color: #6f42c1;
+  font-weight: normal;
+  margin-left: 10px;
+}
+
+.admin-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: white;
+  padding: 8px 20px;
+  border-radius: 30px;
+}
+
+.admin-avatar {
+  width: 40px;
+  height: 40px;
+  background: #006A42;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+.btn-create {
+  background: #6f42c1;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.btn-create:hover {
+  background: #5a32a3;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.template-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transition: transform 0.2s;
+}
+
+.template-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+.template-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.template-icon {
+  width: 48px;
+  height: 48px;
+  background: #f0e6ff;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.template-icon i {
+  font-size: 28px;
+  color: #6f42c1;
+}
+
+.template-title h3 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.template-title p {
+  font-size: 12px;
+  color: #999;
+}
+
+.template-info {
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.template-info div {
+  margin-bottom: 6px;
+  color: #555;
+}
+
+.template-info i {
+  width: 20px;
+  color: #6f42c1;
+}
+
+.template-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn-edit-layout {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #6f42c1;
+  color: white;
+}
+
+.btn-edit-layout:hover {
+  background: #5a32a3;
+}
+
+.btn-delete {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #dc3545;
+  color: white;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 20px;
+  max-width: 500px;
+  width: 90%;
+  padding: 24px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.modal-close {
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.btn-save {
+  background: #6f42c1;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-cancel {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: #999;
+}
+
+.empty-state i {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.badge-v2 {
+  background: #6f42c1;
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: 8px;
+}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <img src="/assets/images/logo-umy3.png" alt="UMY Logo" onerror="this.style.display='none'">
+  </div>
+
+  <div class="menu-item" onclick="window.location.href='/admin/insight.html'">
+      <i class="bi bi-graph-up"></i> Insight
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/logs.html'">
+      <i class="bi bi-list-ul"></i> Log Cetak
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/templates_V1.html'">
+      <i class="bi bi-file-earmark-word"></i> Template V1
+  </div>
+  <div class="menu-item active" onclick="window.location.href='/admin/templates_V2.html'">
+      <i class="bi bi-grid-3x3-gap-fill"></i> Template V2
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/maintenance.html'">
+      <i class="bi bi-gear"></i> Maintenance
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/signature.html'">
+      <i class="bi bi-pen"></i> Master Signature
+  </div>
+
+  <div class="logout" id="logoutBtn">
+    <i class="bi bi-box-arrow-right"></i> Logout
+  </div>
+</div>
+
+<div class="main">
+  <div class="header">
+    <div class="title">
+      Manajemen Template V2 
+      <small><i class="bi bi-grid-3x3-gap-fill"></i> Layout Visual (Drag & Drop)</small>
+    </div>
+    <div class="admin-info">
+      <div class="admin-avatar" id="adminAvatar">A</div>
+      <span class="admin-name" id="adminName">Loading...</span>
+    </div>
+  </div>
+
+  <button class="btn-create" id="createTemplateBtn">
+    <i class="bi bi-plus-circle"></i> Buat Template Baru (V2)
+  </button>
+
+  <div class="template-grid" id="templateGrid">
+    <div class="loading"><i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite;"></i> Memuat template...</div>
+  </div>
+</div>
+
+<!-- MODAL TEMPLATE -->
+<div id="templateModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="templateModalTitle">Buat Template Baru (V2)</div>
+      <div class="modal-close" onclick="closeTemplateModal()">&times;</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editTemplateId">
+      <div class="form-group">
+        <label>Nama Dokumen (Indonesia) <span style="color:red;">*</span></label>
+        <input type="text" id="nameId" placeholder="Contoh: Surat Aktif Kuliah">
+      </div>
+      <div class="form-group">
+        <label>Nama Dokumen (Inggris)</label>
+        <input type="text" id="nameEn" placeholder="Contoh: Certificate of Enrollment">
+      </div>
+      <div class="form-group">
+        <label>File Template (.docx) <span style="color:red;">*</span></label>
+        <input type="file" id="templateFile" accept=".docx">
+        <div style="font-size: 12px; color: #666; margin-top: 4px;">
+          <i class="bi bi-info-circle"></i> File akan digunakan sebagai background/layout dasar
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 16px; border-top: 1px solid #eee;">
+      <button class="btn-cancel" onclick="closeTemplateModal()">Batal</button>
+      <button class="btn-save" onclick="saveTemplate()">Simpan & Lanjut ke Editor</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+let currentTemplateId = null;
+
+async function checkSession() {
+    try {
+        const res = await fetch('/api/me');
+        const data = await res.json();
+        if (!data.success || data.user.role !== 'admin') {
+            window.location.href = '/login.html';
+            return null;
+        }
+        document.getElementById('adminName').innerText = data.user.name || data.user.nim;
+        document.getElementById('adminAvatar').innerText = (data.user.name || data.user.nim).charAt(0).toUpperCase();
+        return data.user;
+    } catch (error) {
+        window.location.href = '/login.html';
+        return null;
+    }
+}
+
+async function logout() {
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login.html';
+}
+
+async function loadTemplates() {
+    const grid = document.getElementById('templateGrid');
+    try {
+        const res = await fetch('/api/templates');
+        const templates = await res.json();
+        if (!templates.length) {
+            grid.innerHTML = '<div class="empty-state"><i class="bi bi-folder2-open"></i><p>Belum ada template. Klik "Buat Template Baru (V2)" untuk memulai.</p></div>';
+            return;
+        }
+        grid.innerHTML = templates.map(t => `
+            <div class="template-card">
+                <div class="template-header">
+                    <div class="template-icon"><i class="bi bi-file-earmark-word-fill"></i></div>
+                    <div class="template-title">
+                        <h3>${escapeHtml(t.name_id)} <span class="badge-v2">V2</span></h3>
+                        <p>${escapeHtml(t.name_en || '-')}</p>
+                    </div>
+                </div>
+                <div class="template-info">
+                    <div><i class="bi bi-calendar"></i> Dibuat: ${new Date(t.created_at).toLocaleDateString()}</div>
+                    <div><i class="bi bi-file-text"></i> File: ${t.filename || '-'}</div>
+                    <div><i class="bi bi-grid-3x3-gap-fill"></i> Layout Visual (Drag & Drop)</div>
+                </div>
+                <div class="template-actions" onclick="event.stopPropagation()">
+                    <button class="btn-edit-layout" onclick="editLayout(${t.id})">
+                        <i class="bi bi-grid-3x3-gap-fill"></i> Edit Layout (V2)
+                    </button>
+                    <button class="btn-delete" onclick="deleteTemplate(${t.id})">
+                        <i class="bi bi-trash"></i> Hapus
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        grid.innerHTML = '<div class="empty-state"><i class="bi bi-exclamation-triangle"></i><p>Gagal memuat template</p></div>';
+    }
+}
+
+function editLayout(id) {
+    window.location.href = `/admin/templates_V2_editor.html?id=${id}`;
+}
+
+async function deleteTemplate(id) {
+    if (!confirm('Hapus template ini? File, layout, dan semua data field akan ikut terhapus.')) return;
+    try {
+        const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
+        const result = await res.json();
+        if (result.success) {
+            loadTemplates();
+        } else {
+            alert('Gagal menghapus');
+        }
+    } catch (error) {
+        alert('Gagal terhubung ke server');
+    }
+}
+
+function showCreateTemplateModal() {
+    currentTemplateId = null;
+    document.getElementById('templateModalTitle').innerText = 'Buat Template Baru (V2)';
+    document.getElementById('editTemplateId').value = '';
+    document.getElementById('nameId').value = '';
+    document.getElementById('nameEn').value = '';
+    document.getElementById('templateFile').value = '';
+    document.getElementById('templateModal').style.display = 'flex';
+}
+
+async function saveTemplate() {
+    const id = document.getElementById('editTemplateId').value;
+    const nameId = document.getElementById('nameId').value.trim();
+    const nameEn = document.getElementById('nameEn').value.trim();
+    const fileInput = document.getElementById('templateFile');
+    
+    if (!nameId) {
+        alert('Nama dokumen wajib diisi');
+        return;
+    }
+    
+    if (!id && (!fileInput.files.length)) {
+        alert('File template wajib diupload untuk template baru');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('name_id', nameId);
+    formData.append('name_en', nameEn);
+    if (fileInput.files.length > 0) {
+        formData.append('template_file', fileInput.files[0]);
+    }
+    
+    const url = id ? `/api/templates/${id}` : '/api/templates';
+    const method = id ? 'PUT' : 'POST';
+    
+    try {
+        const res = await fetch(url, { method, body: formData });
+        const result = await res.json();
+        if (result.success || result.id) {
+            const newId = result.id || id;
+            alert('Template berhasil disimpan!');
+            closeTemplateModal();
+            loadTemplates();
+            
+            // Redirect ke editor layout
+            if (!id) {
+                if (confirm('Template berhasil dibuat. Apakah ingin mengatur layout sekarang?')) {
+                    window.location.href = `/admin/templates_V2_editor.html?id=${newId}`;
+                }
+            }
+        } else {
+            alert('Gagal menyimpan: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Gagal terhubung ke server');
+    }
+}
+
+function closeTemplateModal() {
+    document.getElementById('templateModal').style.display = 'none';
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============ EVENT LISTENERS ============
+document.addEventListener('DOMContentLoaded', async () => {
+    const admin = await checkSession();
+    if (admin) {
+        await loadTemplates();
+    }
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('createTemplateBtn').addEventListener('click', showCreateTemplateModal);
+    
+    window.onclick = function(e) {
+        if (e.target === document.getElementById('templateModal')) closeTemplateModal();
+    };
+});
+
+</script>
+</body>
+</html>

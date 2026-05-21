@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Log Cetak - OtoPrint</title>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  background: #f0f2f5;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 260px;
+  background: #1a1a2e;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+.logo {
+  padding: 24px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 20px;
+}
+
+.logo img {
+  max-width: 120px;
+  height: auto;
+}
+
+.logo h3 {
+  color: white;
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+.menu-item {
+  padding: 14px 24px;
+  cursor: pointer;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+  font-size: 15px;
+}
+
+.menu-item i {
+  font-size: 20px;
+  width: 24px;
+}
+
+.menu-item:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.menu-item.active {
+  background: #006A42;
+  color: white;
+  border-left: 4px solid #FFD700;
+}
+
+.logout {
+  margin: 20px;
+  margin-top: auto;
+  margin-bottom: 30px;
+  padding: 12px;
+  border: 2px solid #dc3545;
+  text-align: center;
+  color: #dc3545;
+  cursor: pointer;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.logout:hover {
+  background: #dc3545;
+  color: white;
+}
+
+/* MAIN */
+.main {
+  flex: 1;
+  margin-left: 260px;
+  padding: 30px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.admin-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: white;
+  padding: 8px 20px;
+  border-radius: 30px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.admin-avatar {
+  width: 40px;
+  height: 40px;
+  background: #006A42;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.admin-name {
+  font-weight: 500;
+  color: #333;
+}
+
+/* FILTER SECTION */
+.filter-section {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filter-group label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.filter-group input, .filter-group select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  min-width: 150px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-filter {
+  background: #006A42;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-reset {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-export {
+  background: #0d6efd;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* TABLE */
+.table-container {
+  background: white;
+  border-radius: 16px;
+  overflow: auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+th {
+  text-align: left;
+  padding: 14px 16px;
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+tr:hover {
+  background: #f8f9fa;
+}
+
+
+.loading {
+  text-align: center;
+  padding: 60px;
+  color: #666;
+}
+
+.loading i {
+  font-size: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: #999;
+}
+
+.empty-state i {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.page-btn {
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.page-btn.active {
+  background: #006A42;
+  color: white;
+  border-color: #006A42;
+}
+
+.page-btn:hover:not(.active) {
+  background: #f0f0f0;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 70px;
+  }
+  .sidebar .logo h3, .sidebar .menu-item span {
+    display: none;
+  }
+  .main {
+    margin-left: 70px;
+  }
+  .filter-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-group input, .filter-group select {
+    width: 100%;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <img src="/assets/images/logo-umy3.png" alt="UMY Logo" onerror="this.style.display='none'">
+  </div>
+
+  <div class="menu-item" onclick="window.location.href='/admin/insight.html'">
+    <i class="bi bi-graph-up"></i> Insight
+  </div>
+  <div class="menu-item active" onclick="window.location.href='#'">
+    <i class="bi bi-list-ul"></i> Log Cetak
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/templates_V1.html'">
+    <i class="bi bi-file-earmark-word"></i> Template V1
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/templates_V2.html'">
+    <i class="bi bi-file-earmark-word"></i> Template V2
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/maintenance.html'">
+    <i class="bi bi-gear"></i> Maintenance
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/signature.html'">
+    <i class="bi bi-pen"></i> Master Signature
+  </div>
+
+  <div class="logout" id="logoutBtn">
+    <i class="bi bi-box-arrow-right"></i> <span>Logout</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="header">
+    <div class="title">Log Cetak</div>
+    <div class="admin-info">
+      <div class="admin-avatar" id="adminAvatar">A</div>
+      <span class="admin-name" id="adminName">Loading...</span>
+    </div>
+  </div>
+
+  <!-- FILTER SECTION -->
+  <div class="filter-section">
+    <div class="filter-group">
+      <label>Dari Tanggal</label>
+      <input type="date" id="startDate">
+    </div>
+    <div class="filter-group">
+      <label>Sampai Tanggal</label>
+      <input type="date" id="endDate">
+    </div>
+    <div class="filter-group">
+      <label>Jenis Dokumen</label>
+      <select id="docTypeFilter">
+        <option value="">Semua</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Cari NIM/Nama</label>
+      <input type="text" id="searchInput" placeholder="Cari mahasiswa...">
+    </div>
+    <div class="filter-actions">
+      <button class="btn-filter" onclick="applyFilters()">Filter</button>
+      <button class="btn-reset" onclick="resetFilters()">Reset</button>
+      <button class="btn-export" onclick="exportToCSV()">Export CSV</button>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-container">
+    <div id="tableContent">
+      <div class="loading"><i class="bi bi-arrow-repeat"></i> Memuat data...</div>
+    </div>
+  </div>
+
+  <!-- PAGINATION -->
+  <div id="pagination" class="pagination"></div>
+</div>
+
+<script>
+let allLogs = [];
+let filteredLogs = [];
+let currentPage = 1;
+const itemsPerPage = 20;
+let documentTypes = [];
+
+// ============ SESSION CHECK ============
+async function checkSession() {
+    try {
+        const response = await fetch('/api/me');
+        const data = await response.json();
+        
+        if (!data.success || data.user.role !== 'admin') {
+            window.location.href = '/login.html';
+            return null;
+        }
+        
+        document.getElementById('adminName').innerText = data.user.name || data.user.nim;
+        document.getElementById('adminAvatar').innerText = (data.user.name || data.user.nim).charAt(0).toUpperCase();
+        
+        return data.user;
+    } catch (error) {
+        window.location.href = '/login.html';
+        return null;
+    }
+}
+
+// ============ LOGOUT ============
+async function logout() {
+    await fetch('/api/logout', { method: 'POST' });
+    sessionStorage.clear();
+    window.location.href = '/login.html';
+}
+
+// ============ LOAD DOCUMENT TYPES ============
+async function loadDocumentTypes() {
+    try {
+        const response = await fetch('/api/documents');
+        documentTypes = await response.json();
+        
+        const select = document.getElementById('docTypeFilter');
+        documentTypes.forEach(doc => {
+            const option = document.createElement('option');
+            option.value = doc.id;
+            option.textContent = doc.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Load document types error:', error);
+    }
+}
+
+// ============ LOAD PRINT LOGS ============
+async function loadPrintLogs() {
+    try {
+        const response = await fetch('/api/print-logs');
+        allLogs = await response.json();
+        filteredLogs = [...allLogs];
+        renderTable();
+    } catch (error) {
+        console.error('Load logs error:', error);
+        document.getElementById('tableContent').innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-exclamation-triangle"></i>
+                <p>Gagal memuat data. Pastikan server backend berjalan.</p>
+            </div>
+        `;
+    }
+}
+
+// ============ APPLY FILTERS ============
+function applyFilters() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const docTypeId = document.getElementById('docTypeFilter').value;
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    
+    filteredLogs = allLogs.filter(log => {
+        if (startDate && new Date(log.printed_at) < new Date(startDate)) return false;
+        if (endDate && new Date(log.printed_at) > new Date(endDate)) return false;
+        if (docTypeId && log.document_type_id != docTypeId) return false;
+        if (search && !(log.user_name?.toLowerCase().includes(search) || log.nim?.includes(search))) return false;
+        return true;
+    });
+    
+    currentPage = 1;
+    renderTable();
+}
+
+// ============ RESET FILTERS ============
+function resetFilters() {
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    document.getElementById('docTypeFilter').value = '';
+    document.getElementById('searchInput').value = '';
+    filteredLogs = [...allLogs];
+    currentPage = 1;
+    renderTable();
+}
+
+// ============ EXPORT TO CSV ============
+function exportToCSV() {
+    if (filteredLogs.length === 0) {
+        alert('Tidak ada data untuk diexport');
+        return;
+    }
+    
+    const headers = ['No', 'Tanggal', 'Jam', 'NIM', 'Nama Mahasiswa', 'Jenis Dokumen'];
+    const rows = filteredLogs.map((log, idx) => [
+        idx + 1,
+        new Date(log.printed_at).toLocaleDateString('id-ID'),
+        new Date(log.printed_at).toLocaleTimeString('id-ID'),
+        log.nim || '-',
+        log.user_name || '-',
+        log.document_name || '-'
+    ]);
+    
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', `print_logs_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+// ============ RENDER TABLE ============
+function renderTable() {
+    const container = document.getElementById('tableContent');
+    
+    if (filteredLogs.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <p>Belum ada data cetak</p>
+            </div>
+        `;
+        document.getElementById('pagination').innerHTML = '';
+        return;
+    }
+    
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    const pageLogs = filteredLogs.slice(start, end);
+    
+    container.innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Tanggal & Waktu</th>
+                    <th>NIM</th>
+                    <th>Nama Mahasiswa</th>
+                    <th>Jenis Dokumen</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${pageLogs.map((log, idx) => `
+                    <tr>
+                        <td>${start + idx + 1}</td>
+                        <td>${new Date(log.printed_at).toLocaleString('id-ID')}</td>
+                        <td>${log.nim || '-'}</td>
+                        <td>${log.user_name || '-'}</td>
+                        <td>${log.document_name || '-'}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+    
+    // Render pagination
+    const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+    let paginationHtml = '';
+    for (let i = 1; i <= Math.min(totalPages, 10); i++) {
+        paginationHtml += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    }
+    document.getElementById('pagination').innerHTML = paginationHtml;
+}
+
+function goToPage(page) {
+    currentPage = page;
+    renderTable();
+}
+
+// ============ INIT ============
+document.addEventListener('DOMContentLoaded', async () => {
+    const admin = await checkSession();
+    if (admin) {
+        await loadDocumentTypes();
+        await loadPrintLogs();
+    }
+    
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Maintenance - OtoPrint</title>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  background: #f0f2f5;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 260px;
+  background: #1a1a2e;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  padding: 24px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 20px;
+}
+
+.logo img {
+  max-width: 120px;
+  height: auto;
+}
+
+.logo h3 {
+  color: white;
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+.menu-item {
+  padding: 14px 24px;
+  cursor: pointer;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+.menu-item i {
+  font-size: 20px;
+  width: 24px;
+}
+
+.menu-item:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.menu-item.active {
+  background: #006A42;
+  color: white;
+  border-left: 4px solid #FFD700;
+}
+
+.logout {
+  margin: 20px;
+  margin-top: auto;
+  margin-bottom: 30px;
+  padding: 12px;
+  border: 2px solid #dc3545;
+  text-align: center;
+  color: #dc3545;
+  cursor: pointer;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.logout:hover {
+  background: #dc3545;
+  color: white;
+}
+
+/* MAIN */
+.main {
+  flex: 1;
+  margin-left: 260px;
+  padding: 30px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.admin-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: white;
+  padding: 8px 20px;
+  border-radius: 30px;
+}
+
+.admin-avatar {
+  width: 40px;
+  height: 40px;
+  background: #006A42;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+/* CARDS GRID */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.card h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  font-size: 18px;
+  color: #333;
+}
+
+.card h3 i {
+  font-size: 24px;
+  color: #006A42;
+}
+
+/* STATUS BAR */
+.status-item {
+  margin-bottom: 24px;
+}
+
+.status-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #555;
+}
+
+.progress-bar {
+  height: 12px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.progress-fill.paper { background: #006A42; }
+.progress-fill.ink { background: #FFD700; }
+
+.warning-text {
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.warning-text.warning {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* FORM CONTROLS */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.btn-save {
+  background: #006A42;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.btn-save:hover {
+  background: #005235;
+}
+
+.btn-test {
+  background: #0d6efd;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.btn-test:hover {
+  background: #0b5ed7;
+}
+
+/* ACTION BUTTONS */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.btn-refresh, .btn-reset-stock {
+  flex: 1;
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-reset-stock {
+  background: #0d6efd;
+}
+
+/* LOG SECTION */
+.log-section {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.log-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  font-size: 18px;
+}
+
+.log-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.log-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.log-item i {
+  font-size: 18px;
+  margin-top: 2px;
+}
+
+.log-item .log-content {
+  flex: 1;
+}
+
+.log-item .log-message {
+  font-size: 14px;
+  color: #333;
+}
+
+.log-item .log-time {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1024px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 70px;
+  }
+  .sidebar .logo h3, .sidebar .menu-item span {
+    display: none;
+  }
+  .main {
+    margin-left: 70px;
+  }
+  .action-buttons {
+    flex-direction: column;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+ <div class="sidebar">
+  <div class="logo">
+    <img src="/assets/images/logo-umy3.png" alt="UMY Logo" onerror="this.style.display='none'">
+  </div>
+
+  <div class="menu-item" onclick="window.location.href='/admin/insight.html'">
+      <i class="bi bi-graph-up"></i> Insight
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/logs.html'">
+      <i class="bi bi-list-ul"></i> Log Cetak
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/templates_V1.html'">
+    <i class="bi bi-file-earmark-word"></i> Template V1
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/templates_V2.html'">
+    <i class="bi bi-file-earmark-word"></i> Template V2
+  </div>
+  <div class="menu-item active" onclick="window.location.href='#'">
+      <i class="bi bi-gear"></i> Maintenance
+  </div>
+  <div class="menu-item" onclick="window.location.href='/admin/signature.html'">
+      <i class="bi bi-pen"></i> Master Signature
+  </div>
+
+  <div class="logout" id="logoutBtn">
+    <i class="bi bi-box-arrow-right"></i> <span>Logout</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="header">
+    <div class="title">Maintenance & Pengaturan</div>
+    <div class="admin-info">
+      <div class="admin-avatar" id="adminAvatar">A</div>
+      <span class="admin-name" id="adminName">Loading...</span>
+    </div>
+  </div>
+
+  <div class="cards-grid">
+    <!-- STOK KERTAS CARD -->
+    <div class="card">
+      <h3><i class="bi bi-paperclip"></i> Stok Kertas</h3>
+      <div class="status-item">
+        <div class="status-label">
+          <span>Sisa Kertas</span>
+          <span class="value" id="paperStockValue">-</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill paper" id="paperProgress" style="width: 0%"></div>
+        </div>
+        <div id="paperWarning" class="warning-text"></div>
+      </div>
+      <div class="form-group">
+        <label>Ubah Stok Kertas (lembar)</label>
+        <input type="number" id="paperStockInput" min="0" max="1000" value="500">
+      </div>
+      <button class="btn-save" onclick="updatePaperStock()">
+        <i class="bi bi-save"></i> Simpan Stok Kertas
+      </button>
+    </div>
+
+    <!-- TINTA CARD -->
+    <div class="card">
+      <h3><i class="bi bi-droplet"></i> Level Tinta</h3>
+      <div class="status-item">
+        <div class="status-label">
+          <span>Sisa Tinta</span>
+          <span class="value" id="inkLevelValue">-</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill ink" id="inkProgress" style="width: 0%"></div>
+        </div>
+        <div id="inkWarning" class="warning-text"></div>
+      </div>
+      <div class="form-group">
+        <label>Ubah Level Tinta (%)</label>
+        <input type="number" id="inkLevelInput" min="0" max="100" value="75">
+      </div>
+      <button class="btn-save" onclick="updateInkLevel()">
+        <i class="bi bi-save"></i> Simpan Level Tinta
+      </button>
+    </div>
+
+    <!-- PRINTER SETTINGS CARD -->
+    <div class="card">
+      <h3><i class="bi bi-printer"></i> Printer Settings</h3>
+      <div class="form-group">
+        <label>Default Printer untuk OtoPrint</label>
+        <select id="printerSelect" class="form-control">
+          <option value="">-- Printer Default Windows --</option>
+        </select>
+        <button class="btn-save" onclick="savePrinter()">
+          <i class="bi bi-save"></i> Simpan Printer
+        </button>
+        <button class="btn-test" onclick="testPrint()">
+          <i class="bi bi-printer"></i> Test Print
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div class="action-buttons">
+    <button class="btn-refresh" onclick="loadMaintenanceData()">
+      <i class="bi bi-arrow-repeat"></i> Refresh Data
+    </button>
+    <button class="btn-reset-stock" onclick="resetToDefault()">
+      <i class="bi bi-arrow-counterclockwise"></i> Reset ke Default
+    </button>
+  </div>
+
+  <!-- LOG AKTIVITAS -->
+  <div class="log-section">
+    <h3><i class="bi bi-clock-history"></i> Log Aktivitas Maintenance</h3>
+    <div class="log-list" id="logList">
+      <div class="loading"><i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite;"></i> Memuat log...</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+let maintenanceLogs = [];
+
+// ============ SESSION CHECK ============
+async function checkSession() {
+    try {
+        const response = await fetch('/api/me');
+        const data = await response.json();
+        
+        if (!data.success || data.user.role !== 'admin') {
+            window.location.href = '/login.html';
+            return null;
+        }
+        
+        document.getElementById('adminName').innerText = data.user.name || data.user.nim;
+        document.getElementById('adminAvatar').innerText = (data.user.name || data.user.nim).charAt(0).toUpperCase();
+        
+        return data.user;
+    } catch (error) {
+        window.location.href = '/login.html';
+        return null;
+    }
+}
+
+// ============ LOGOUT ============
+async function logout() {
+    await fetch('/api/logout', { method: 'POST' });
+    sessionStorage.clear();
+    window.location.href = '/login.html';
+}
+
+// ============ LOAD PRINTERS ============
+async function loadPrinters() {
+    try {
+        const response = await fetch('/api/printers');
+        const printers = await response.json();
+        const select = document.getElementById('printerSelect');
+        
+        printers.forEach(printer => {
+            const option = document.createElement('option');
+            option.value = printer.name;
+            option.textContent = printer.name;
+            select.appendChild(option);
+        });
+        
+        // Load saved printer
+        const settings = await fetch('/api/maintenance').then(r => r.json());
+        if (settings.printer_name) {
+            select.value = settings.printer_name;
+        }
+    } catch (error) {
+        console.error('Load printers error:', error);
+    }
+}
+
+// ============ SAVE PRINTER ============
+async function savePrinter() {
+    const printerName = document.getElementById('printerSelect').value;
+    
+    try {
+        const response = await fetch('/api/settings/printer', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ printer_name: printerName })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            addLog(`Printer default diubah menjadi: ${printerName || 'Default Windows'}`, 'success');
+            alert('Pengaturan printer berhasil disimpan');
+        } else {
+            alert('Gagal menyimpan pengaturan printer');
+        }
+    } catch (error) {
+        console.error('Save printer error:', error);
+        alert('Gagal terhubung ke server');
+    }
+}
+
+// ============ TEST PRINT ============
+async function testPrint() {
+    try {
+        const response = await fetch('/api/print-test');
+        const result = await response.json();
+        
+        if (result.success) {
+            addLog('Test print berhasil dikirim ke printer', 'success');
+            alert('Test print berhasil! Cek printer Anda.');
+        } else {
+            alert('Test print gagal: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Test print error:', error);
+        alert('Gagal terhubung ke server');
+    }
+}
+
+// ============ LOAD MAINTENANCE DATA ============
+async function loadMaintenanceData() {
+    try {
+        const response = await fetch('/api/maintenance');
+        const data = await response.json();
+        
+        const paperStock = data.paper_stock || 0;
+        const inkLevel = data.ink_level || 0;
+        const paperThreshold = data.paper_threshold || 100;
+        const inkThreshold = data.ink_threshold || 20;
+        
+        document.getElementById('paperStockValue').innerText = `${paperStock} lembar`;
+        document.getElementById('inkLevelValue').innerText = `${inkLevel}%`;
+        
+        const paperPercent = Math.min(100, (paperStock / 500) * 100);
+        document.getElementById('paperProgress').style.width = `${paperPercent}%`;
+        document.getElementById('inkProgress').style.width = `${inkLevel}%`;
+        
+        document.getElementById('paperStockInput').value = paperStock;
+        document.getElementById('inkLevelInput').value = inkLevel;
+        
+        const paperWarning = document.getElementById('paperWarning');
+        const inkWarning = document.getElementById('inkWarning');
+        
+        if (paperStock <= paperThreshold) {
+            paperWarning.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ⚠️ Stok kertas menipis! Segera isi ulang.';
+            paperWarning.className = 'warning-text warning';
+        } else {
+            paperWarning.innerHTML = '';
+            paperWarning.className = 'warning-text';
+        }
+        
+        if (inkLevel <= inkThreshold) {
+            inkWarning.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ⚠️ Tinta rendah! Segera ganti cartridge.';
+            inkWarning.className = 'warning-text warning';
+        } else if (inkLevel <= 30) {
+            inkWarning.innerHTML = '<i class="bi bi-info-circle"></i> Tinta mulai menipis, siapkan cadangan.';
+            inkWarning.className = 'warning-text';
+        } else {
+            inkWarning.innerHTML = '';
+            inkWarning.className = 'warning-text';
+        }
+        
+        addLog('Data maintenance dimuat', 'info');
+        
+    } catch (error) {
+        console.error('Load maintenance error:', error);
+    }
+}
+
+// ============ UPDATE PAPER STOCK ============
+async function updatePaperStock() {
+    const newStock = parseInt(document.getElementById('paperStockInput').value);
+    if (isNaN(newStock) || newStock < 0) {
+        alert('Masukkan jumlah stok yang valid');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/maintenance', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                paper_stock: newStock,
+                ink_level: parseInt(document.getElementById('inkLevelInput').value)
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            addLog(`Stok kertas diubah menjadi ${newStock} lembar`, 'success');
+            loadMaintenanceData();
+        } else {
+            alert('Gagal menyimpan perubahan');
+        }
+    } catch (error) {
+        console.error('Update paper stock error:', error);
+        alert('Gagal terhubung ke server');
+    }
+}
+
+// ============ UPDATE INK LEVEL ============
+async function updateInkLevel() {
+    const newLevel = parseInt(document.getElementById('inkLevelInput').value);
+    if (isNaN(newLevel) || newLevel < 0 || newLevel > 100) {
+        alert('Masukkan level tinta yang valid (0-100)');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/maintenance', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                paper_stock: parseInt(document.getElementById('paperStockInput').value),
+                ink_level: newLevel
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            addLog(`Level tinta diubah menjadi ${newLevel}%`, 'success');
+            loadMaintenanceData();
+        } else {
+            alert('Gagal menyimpan perubahan');
+        }
+    } catch (error) {
+        console.error('Update ink level error:', error);
+        alert('Gagal terhubung ke server');
+    }
+}
+
+// ============ RESET TO DEFAULT ============
+async function resetToDefault() {
+    if (confirm('Reset semua pengaturan ke nilai default (kertas: 500, tinta: 75%)?')) {
+        try {
+            const response = await fetch('/api/maintenance', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    paper_stock: 500,
+                    ink_level: 75
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                document.getElementById('paperStockInput').value = 500;
+                document.getElementById('inkLevelInput').value = 75;
+                addLog('Reset semua pengaturan ke nilai default', 'warning');
+                loadMaintenanceData();
+            } else {
+                alert('Gagal reset pengaturan');
+            }
+        } catch (error) {
+            console.error('Reset error:', error);
+            alert('Gagal terhubung ke server');
+        }
+    }
+}
+
+// ============ ADD LOG ============
+function addLog(message, type) {
+    const log = {
+        message: message,
+        type: type,
+        time: new Date().toLocaleString('id-ID')
+    };
+    maintenanceLogs.unshift(log);
+    
+    if (maintenanceLogs.length > 20) {
+        maintenanceLogs.pop();
+    }
+    
+    renderLogs();
+}
+
+// ============ RENDER LOGS ============
+function renderLogs() {
+    const container = document.getElementById('logList');
+    
+    if (maintenanceLogs.length === 0) {
+        container.innerHTML = '<div class="empty-logs" style="text-align:center; padding:40px; color:#999;"><i class="bi bi-inbox"></i><p>Belum ada aktivitas maintenance</p></div>';
+        return;
+    }
+    
+    const getIcon = (type) => {
+        switch(type) {
+            case 'success': return '<i class="bi bi-check-circle-fill" style="color:#198754;"></i>';
+            case 'warning': return '<i class="bi bi-exclamation-triangle-fill" style="color:#ffc107;"></i>';
+            default: return '<i class="bi bi-info-circle-fill" style="color:#0d6efd;"></i>';
+        }
+    };
+    
+    container.innerHTML = maintenanceLogs.map(log => `
+        <div class="log-item">
+            <div>${getIcon(log.type)}</div>
+            <div class="log-content">
+                <div class="log-message">${log.message}</div>
+                <div class="log-time">${log.time}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ============ INIT ============
+document.addEventListener('DOMContentLoaded', async () => {
+    const admin = await checkSession();
+    if (admin) {
+        await loadMaintenanceData();
+        await loadPrinters();
+        addLog('Admin login ke halaman maintenance', 'info');
+    }
+    
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+});
+</script>
+</body>
+</html>
