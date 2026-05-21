@@ -490,50 +490,69 @@ function renderForm() {
         return;
     }
     
-    // Sort fields by order
-    const sortedFields = [...currentFields].sort((a, b) => (a.field_order || 0) - (b.field_order || 0));
+    // 🔥 HANYA field MANUAL yang ditampilkan di FORM (karena hanya ini yang perlu diisi user)
+    const manualFields = currentFields.filter(f => f.data_source === 'MANUAL');
     
-    // Generate form HTML
+    // Sort by order
+    const sortedFields = [...manualFields].sort((a, b) => (a.field_order || 0) - (b.field_order || 0));
+    
     let fieldsHtml = '';
-    const autoDataMap = {};
     
     for (const field of sortedFields) {
-        // SKIP field dengan data_source SYSTEM (tidak ditampilkan)
-        if (field.data_source === 'SYSTEM') continue;
-        
-        // SKIP field dengan data_source MASTER_SIGNATURE (tidak ditampilkan)
-        if (field.data_source === 'MASTER_SIGNATURE') continue;
-        
-        const isAuto = field.data_source === 'AUTO_KRS';
-        let defaultValue = '';
-        
-        if (isAuto) {
-            defaultValue = getAutoData(field.field_name, field.source_key);
-            autoDataMap[field.field_name] = defaultValue;
-        }
-        
         const inputType = field.field_type === 'number' ? 'number' : (field.field_type === 'date' ? 'date' : 'text');
-        const readonlyAttr = isAuto ? 'readonly' : '';
-        const valueAttr = defaultValue ? `value="${escapeHtml(defaultValue)}"` : '';
         
         fieldsHtml += `
             <div class="form-group">
                 <label class="form-label">
-                    ${escapeHtml(field.label)}
-                    ${!isAuto ? '<span class="required">*</span>' : ''}
-                    ${isAuto ? '<span class="auto-badge"><i class="bi bi-database"></i> Auto KRS</span>' : ''}
+                    ${escapeHtml(field.label)} <span class="required">*</span>
                 </label>
                 <input type="${inputType}" 
                        class="form-control" 
                        id="field_${field.id}" 
                        name="${field.field_name}"
-                       data-source="${field.data_source}"
-                       ${readonlyAttr}
-                       ${valueAttr}
-                       ${!isAuto ? 'required' : ''}
-                       placeholder="Masukkan ${field.label.toLowerCase()}">
+                       required
+                       placeholder="Masukkan ${escapeHtml(field.label.toLowerCase())}">
             </div>
         `;
+    }
+    
+    // Jika tidak ada field MANUAL
+    if (sortedFields.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="bi bi-check-circle" style="font-size: 48px; color: #006A42;"></i>
+                <p class="mt-3">Tidak ada data yang perlu diisi. Klik "Preview" untuk melanjutkan.</p>
+                <div class="form-actions" style="margin-top: 30px;">
+                    <a href="dashboard.html" class="btn-cancel">Cancel</a>
+                    <button id="directPreviewBtn" class="btn-submit">Preview Dokumen</button>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('directPreviewBtn')?.addEventListener('click', () => {
+            // Tetap siapkan data untuk field AUTO_KRS, SYSTEM, MASTER_SIGNATURE
+            const formData = {};
+            for (const field of currentFields) {
+                if (field.data_source === 'SYSTEM') {
+                    const systemData = generateSystemData();
+                    formData[field.field_name] = systemData[field.source_key] || '';
+                } else if (field.data_source === 'AUTO_KRS') {
+                    formData[field.field_name] = getAutoData(field.field_name, field.source_key);
+                } else if (field.data_source === 'MASTER_SIGNATURE') {
+                    formData[field.field_name] = null;
+                }
+            }
+            
+            const storageData = {
+                templateId: currentTemplate.id,
+                templateName: currentTemplate.name_id,
+                fields: currentFields,
+                data: formData
+            };
+            localStorage.setItem('formData', JSON.stringify(storageData));
+            window.location.href = `preview-generator.html?id=${currentTemplate.id}`;
+        });
+        return;
     }
     
     container.innerHTML = `
@@ -550,11 +569,7 @@ function renderForm() {
         </form>
     `;
     
-    // Attach submit handler
     document.getElementById('dynamicForm').addEventListener('submit', handleSubmit);
-    
-    // Store auto data for later use
-    window.autoDataMap = autoDataMap;
 }
 
 function handleSubmit(e) {
@@ -565,42 +580,48 @@ function handleSubmit(e) {
         return;
     }
     
-    if (!currentFields || currentFields.length === 0) {
-        alert('Template ini belum memiliki field. Silakan hubungi admin.');
-        return;
-    }
-    
     const formData = {};
     
+    // 🔥 Proses SEMUA field (termasuk yang tidak ditampilkan)
     for (const field of currentFields) {
-        if (field.data_source === 'SYSTEM') continue;
-        
-        // TAMBAHKAN: untuk MASTER_SIGNATURE
-        if (field.data_source === 'MASTER_SIGNATURE') {
-            formData[field.field_name] = null;  // placeholder, nanti di preview diisi
+        // SYSTEM: generate otomatis
+        if (field.data_source === 'SYSTEM') {
+            const systemData = generateSystemData();
+            formData[field.field_name] = systemData[field.source_key] || '';
             continue;
         }
         
+        // MASTER_SIGNATURE: null (nanti di preview diisi backend)
+        if (field.data_source === 'MASTER_SIGNATURE') {
+            formData[field.field_name] = null;
+            continue;
+        }
+        
+        // AUTO_KRS: ambil dari session user
         if (field.data_source === 'AUTO_KRS') {
-            formData[field.field_name] = window.autoDataMap?.[field.field_name] || '';
-        } else {
+            const autoValue = getAutoData(field.field_name, field.source_key);
+            formData[field.field_name] = autoValue;
+            continue;
+        }
+        
+        // MANUAL: ambil dari input form
+        if (field.data_source === 'MANUAL') {
             const input = document.getElementById(`field_${field.id}`);
             if (input) {
-                formData[field.field_name] = input.value;
-                
-                // Validation for required manual fields
                 if (!input.value.trim()) {
                     alert(`Field "${field.label}" wajib diisi`);
                     input.focus();
-                    
                     if (navigator.vibrate) navigator.vibrate(100);
                     return;
                 }
+                formData[field.field_name] = input.value;
             }
         }
     }
     
-    // Store to localStorage and redirect to preview
+    console.log('Form data:', formData);
+    
+    // Store to localStorage
     const storageData = {
         templateId: currentTemplate.id,
         templateName: currentTemplate.name_id,
@@ -608,10 +629,9 @@ function handleSubmit(e) {
         data: formData
     };
     
-    console.log('Saving to localStorage:', storageData);
     localStorage.setItem('formData', JSON.stringify(storageData));
     
-    // Loading feedback sebelum redirect
+    // Redirect to preview
     const submitBtn = document.querySelector('.btn-submit');
     submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Memproses...';
     submitBtn.disabled = true;

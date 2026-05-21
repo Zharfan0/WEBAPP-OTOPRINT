@@ -7,6 +7,9 @@ const fs = require('fs');
 const os = require('os'); 
 const { exec } = require('child_process');
 const JSZip = require('jszip');
+const { v4: uuidv4 } = require('uuid');
+const QRCode = require('qrcode');
+const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 
 const { convertDocxToPdf, generateEmptyPreview, generatePdfWithLayout } = require('./pdfGenerator');
 
@@ -138,6 +141,22 @@ db.serialize(() => {
             db.run(`INSERT INTO maintenance_settings (id, paper_stock, ink_level) VALUES (1, 500, 75)`);
         }
     });
+
+    // Tabel verifikasi dokumen (untuk QR authentication)
+    db.run(`CREATE TABLE IF NOT EXISTS document_verifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        doc_uuid TEXT UNIQUE NOT NULL,
+        template_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        user_name TEXT,
+        user_nim TEXT,
+        document_name TEXT,
+        printed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        metadata TEXT,
+        status TEXT DEFAULT 'active',
+        verified_count INTEGER DEFAULT 0,
+        last_verified_at DATETIME
+    )`);
 });
 
 // ============ API ENDPOINTS ============
@@ -715,7 +734,6 @@ app.get('/api/print-test', async (req, res) => {
         const printerName = setting?.printer_name || undefined;
         
         // Buat test page sederhana (PDF sederhana)
-        const { PDFDocument, rgb } = require('pdf-lib');
         const pdfDoc = await PDFDocument.create();
         const page = pdfDoc.addPage([400, 200]);
         page.drawText('Test Print OtoPrint', { x: 50, y: 100, size: 16 });
@@ -727,7 +745,6 @@ app.get('/api/print-test', async (req, res) => {
         fs.writeFileSync(tempPdfPath, pdfBytes);
         
         // Cetak
-        const { print } = require('pdf-to-printer');
         await print(tempPdfPath, { printer: printerName });
         
         // Hapus file temporary
@@ -758,6 +775,7 @@ app.post('/api/print-to-printer', async (req, res) => {
 
     let finalDocxPath = null;
     let tempPdfPath   = null;
+    let pdfWithQrBuffer = null;
 
     try {
         // ── 1. Ambil template ──────────────────────────────────────────
@@ -806,7 +824,7 @@ app.post('/api/print-to-printer', async (req, res) => {
         // ── 4. Siapkan renderData ──────────────────────────────────────
         const renderData = { ...allData };
         for (const key of Object.keys(signatureImages)) {
-            renderData[key] = key; // dummy value, getImage pakai tagName
+            renderData[key] = key;
         }
 
         console.log('📦 renderData keys:', Object.keys(renderData));
@@ -825,11 +843,10 @@ app.post('/api/print-to-printer', async (req, res) => {
             console.log('✅ Injection berhasil');
         } catch (injectError) {
             console.error('❌ Injection gagal:', injectError.message);
-            // Fallback: cetak tanpa signature
             fs.copyFileSync(templatePath, finalDocxPath);
         }
 
-        // ── 6. Konversi DOCX → PDF ─────────────────────────────────────
+        // ── 6. Konversi DOCX → PDF via LibreOffice ────────────────────
         const libreOfficePath = 'D:\\LibreOffice\\program\\soffice.exe';
         if (!fs.existsSync(libreOfficePath)) {
             throw new Error('LibreOffice tidak ditemukan');
@@ -854,6 +871,58 @@ app.post('/api/print-to-printer', async (req, res) => {
             throw new Error('PDF tidak terbuat setelah konversi');
         }
         fs.renameSync(generatedPdf, tempPdfPath);
+        
+        // Baca PDF buffer untuk ditambah QR
+        let pdfBuffer = fs.readFileSync(tempPdfPath);
+
+        // ═══════════════════════════════════════════════════════════════
+        // 🔐 TAMBAHKAN QR VERIFIKASI (pojok kanan bawah)
+        // ═══════════════════════════════════════════════════════════════
+        
+        // Generate UUID unik untuk dokumen
+        const docUuid = generateDocUuid();
+        
+        // Buat URL verifikasi
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const verifyUrl = `${baseUrl}/verify.html?doc=${docUuid}`;
+        
+        console.log('🔐 QR Verifikasi URL:', verifyUrl);
+        
+        // Overlay QR ke PDF
+        pdfWithQrBuffer = await addVerificationQrToPdf(pdfBuffer, verifyUrl);
+        
+        // Simpan data verifikasi ke database
+        const user = req.session.user;
+        
+        // Ambil nama dokumen dari template
+        const templateName = template.name_id || 'Dokumen';
+        
+        db.run(`
+            INSERT INTO document_verifications 
+            (doc_uuid, template_id, user_id, user_name, user_nim, document_name, metadata, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
+        `, [
+            docUuid, 
+            templateId, 
+            user.id, 
+            user.name || user.nim, 
+            user.nim || '-', 
+            templateName,
+            JSON.stringify(allData)
+        ], (err) => {
+            if (err) {
+                console.error('❌ Gagal simpan verifikasi:', err.message);
+            } else {
+                console.log('✅ Verifikasi tersimpan, UUID:', docUuid);
+            }
+        });
+
+        // Gunakan PDF yang sudah ada QR untuk dicetak
+        const finalPdfBuffer = pdfWithQrBuffer;
+        
+        // Simpan PDF sementara dengan QR untuk dicetak
+        const tempPdfWithQrPath = path.join(os.tmpdir(), `print_with_qr_${Date.now()}.pdf`);
+        fs.writeFileSync(tempPdfWithQrPath, finalPdfBuffer);
 
         // ── 7. Cetak ke printer ────────────────────────────────────────
         const printerSetting = await new Promise((resolve) => {
@@ -865,10 +934,11 @@ app.post('/api/print-to-printer', async (req, res) => {
         const printerName = printerSetting?.printer_name || undefined;
         console.log('🖨️  Mencetak ke:', printerName || 'Default');
 
-        await print(tempPdfPath, { printer: printerName });
+        const { print } = require('pdf-to-printer');
+        await print(tempPdfWithQrPath, { printer: printerName });
         console.log('✅ Print berhasil');
 
-        // ── 8. Simpan log ──────────────────────────────────────────────
+        // ── 8. Simpan log cetak ────────────────────────────────────────
         const now = new Date();
         const localTime = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
 
@@ -883,7 +953,12 @@ app.post('/api/print-to-printer', async (req, res) => {
             err => { if (err) console.error('Stock error:', err); }
         );
 
-        res.json({ success: true, message: 'Dokumen berhasil dicetak' });
+        // Hapus file temp PDF dengan QR
+        if (fs.existsSync(tempPdfWithQrPath)) {
+            try { fs.unlinkSync(tempPdfWithQrPath); } catch(_) {}
+        }
+
+        res.json({ success: true, message: 'Dokumen berhasil dicetak', verifyUrl: verifyUrl });
 
     } catch (error) {
         console.error('❌ Print error:', error.message);
@@ -897,7 +972,6 @@ app.post('/api/print-to-printer', async (req, res) => {
         }
     }
 });
-
 // ============ MASTER SIGNATURE ENDPOINTS ============
 
 // Get all signatures
@@ -1493,6 +1567,111 @@ app.post('/api/v2/print', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// ============ VERIFIKASI DOKUMEN (PUBLIC) ============
+
+// Endpoint verifikasi dokumen
+app.get('/api/verify/:uuid', (req, res) => {
+  const { uuid } = req.params;
+  
+  db.get(`SELECT * FROM document_verifications WHERE doc_uuid = ?`, [uuid], (err, doc) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    
+    if (!doc) {
+      return res.json({ valid: false, message: 'Dokumen tidak ditemukan dalam sistem' });
+    }
+    
+    if (doc.status !== 'active') {
+      return res.json({ valid: false, message: 'Dokumen ini telah dicabut status keabsahannya' });
+    }
+    
+    // Update verified_count
+    db.run(`UPDATE document_verifications SET verified_count = verified_count + 1, last_verified_at = CURRENT_TIMESTAMP WHERE id = ?`, [doc.id]);
+    
+    // Parse metadata
+    let metadata = {};
+    try {
+      metadata = JSON.parse(doc.metadata || '{}');
+    } catch(e) {}
+    
+    res.json({
+      valid: true,
+      doc_uuid: doc.doc_uuid,
+      document_name: doc.document_name,
+      user_name: doc.user_name,
+      user_nim: doc.user_nim,
+      printed_at: doc.printed_at,
+      verified_count: doc.verified_count + 1,
+      metadata: metadata
+    });
+  });
+});
+
+// ============ QR VERIFIKASI HELPER FUNCTIONS ============
+
+// Generate unique document UUID
+function generateDocUuid() {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 8);
+  return `OTP-${timestamp}-${random}`.toUpperCase();
+}
+
+// Overlay QR code ke PDF di pojok kanan bawah
+async function addVerificationQrToPdf(pdfBuffer, qrUrl) {
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  const pages = pdfDoc.getPages();
+  const firstPage = pages[0];
+  const { width, height } = firstPage.getSize();
+  
+  // === KONFIGURASI QR ===
+  const qrSize = 50;  // Ubah ukuran QR (px), misal: 80, 100, 120
+  const marginRight = 20;  // Jarak dari kanan
+  const marginBottom = 20; // Jarak dari bawah
+  
+  // Posisi pojok kanan bawah
+  const x = width - qrSize - marginRight;
+  const y = marginBottom;
+  
+  // Generate QR
+  const qrBuffer = await QRCode.toBuffer(qrUrl, {
+    width: qrSize,
+    margin: 0,
+    color: { dark: '#000000', light: '#FFFFFF' },
+    errorCorrectionLevel: 'M'
+  });
+  
+  const qrImage = await pdfDoc.embedPng(qrBuffer);
+  
+  // Gambar QR
+  firstPage.drawImage(qrImage, { 
+    x: x, 
+    y: y, 
+    width: qrSize, 
+    height: qrSize 
+  });
+  
+  // === TAMBAHKAN TEXT "AUTHENTICATION" DI BAWAH QR ===
+  const helvetica = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const text = "AUTHENTICATION";
+  const textSize = 6;
+  const textWidth = helvetica.widthOfTextAtSize(text, textSize);
+  
+  // Posisi text (centered di bawah QR)
+  const textX = x + (qrSize / 2) - (textWidth / 2);
+  const textY = y - 8; // 5px di bawah QR
+  
+  firstPage.drawText(text, {
+    x: textX,
+    y: textY,
+    size: textSize,
+    font: helvetica,
+    color: rgb(0, 0, 0),
+  });
+  
+  return await pdfDoc.save();
+}
 
 // Error handler
 app.use((err, req, res, next) => {

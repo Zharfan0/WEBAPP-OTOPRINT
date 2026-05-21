@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verifikasi Dokumen - OtoPrint</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6d9 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+      padding: 20px;
+    }
+    .verification-card {
+      max-width: 550px;
+      width: 100%;
+      background: white;
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .status-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .status-valid {
+      background: #e8f5e9;
+      color: #006A42;
+    }
+    .status-invalid {
+      background: #ffebee;
+      color: #dc3545;
+    }
+    .status-icon i {
+      font-size: 40px;
+    }
+    .status-text {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .status-valid-text { color: #006A42; }
+    .status-invalid-text { color: #dc3545; }
+    .info-table {
+      background: #f8f9fa;
+      border-radius: 16px;
+      padding: 16px;
+      text-align: left;
+      margin: 20px 0;
+    }
+    .info-row {
+      display: flex;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .info-label {
+      width: 120px;
+      font-weight: 600;
+      color: #555;
+    }
+    .info-value {
+      flex: 1;
+      color: #333;
+    }
+    .btn-home {
+      background: #006A42;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-home:hover {
+      background: #004d30;
+      color: white;
+    }
+    .loading {
+      padding: 40px;
+      text-align: center;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e0e0e0;
+      border-top-color: #006A42;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="verification-card" id="verificationCard">
+  <div id="loadingState" class="loading">
+    <div class="spinner"></div>
+    <p>Memverifikasi dokumen...</p>
+  </div>
+  
+  <div id="resultState" style="display: none;">
+    <!-- Hasil akan diisi JavaScript -->
+  </div>
+</div>
+
+<script>
+  async function verifyDocument() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const docId = urlParams.get('doc') || urlParams.get('id');
+    
+    if (!docId) {
+      showResult(false, 'Parameter dokumen tidak ditemukan');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/verify/${docId}`);
+      const result = await response.json();
+      
+      if (result.valid) {
+        showValidResult(result);
+      } else {
+        showResult(false, result.message || 'Dokumen tidak valid atau tidak ditemukan');
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      showResult(false, 'Gagal terhubung ke server');
+    }
+  }
+  
+  function showValidResult(data) {
+    document.getElementById('loadingState').style.display = 'none';
+    const resultDiv = document.getElementById('resultState');
+    
+    resultDiv.innerHTML = `
+      <div class="status-icon status-valid">
+        <i class="bi bi-check-lg"></i>
+      </div>
+      <div class="status-text status-valid-text">DOKUMEN ASLI</div>
+      <p style="color: #666; margin-bottom: 20px;">Dokumen ini telah diverifikasi dan terdaftar di sistem OtoPrint</p>
+      
+      <div class="info-table">
+        <div class="info-row">
+          <div class="info-label">Jenis Dokumen</div>
+          <div class="info-value">${escapeHtml(data.document_name || '-')}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">Nama Mahasiswa</div>
+          <div class="info-value">${escapeHtml(data.user_name || '-')}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">NIM</div>
+          <div class="info-value">${escapeHtml(data.user_nim || '-')}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">Tanggal Cetak</div>
+          <div class="info-value">${escapeHtml(data.printed_at || '-')}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">ID Verifikasi</div>
+          <div class="info-value"><code>${escapeHtml(data.doc_uuid || '-')}</code></div>
+        </div>
+      </div>
+      
+      <div style="margin-top: 16px; padding: 12px; background: #e8f5e9; border-radius: 12px;">
+        <i class="bi bi-shield-check" style="color: #006A42;"></i>
+        <span style="font-size: 13px; color: #555;">Dokumen ini telah dicetak melalui sistem resmi OtoPrint UMY</span>
+      </div>
+      
+      <button style="margin-top: 16px;"" class="btn-home" onclick="window.location.href='/Index.html'">
+        <i class="bi bi-house"></i> Kembali ke Beranda
+      </button>
+    `;
+    
+    resultDiv.style.display = 'block';
+  }
+  
+  function showResult(isValid, message) {
+    document.getElementById('loadingState').style.display = 'none';
+    const resultDiv = document.getElementById('resultState');
+    
+    const isValidBool = isValid || message === 'Dokumen valid';
+    const statusClass = isValidBool ? 'status-valid' : 'status-invalid';
+    const statusTextClass = isValidBool ? 'status-valid-text' : 'status-invalid-text';
+    const icon = isValidBool ? 'bi-check-lg' : 'bi-x-lg';
+    const statusMsg = isValidBool ? 'DOKUMEN ASLI' : 'DOKUMEN TIDAK VALID';
+    
+    resultDiv.innerHTML = `
+      <div class="status-icon ${statusClass}">
+        <i class="bi ${icon}"></i>
+      </div>
+      <div class="status-text ${statusTextClass}">${statusMsg}</div>
+      <p style="color: #666; margin-bottom: 20px;">${escapeHtml(message)}</p>
+      <button class="btn-home" onclick="window.location.href='/Index.html'">
+        <i class="bi bi-house"></i> Kembali ke Beranda
+      </button>
+    `;
+    
+    resultDiv.style.display = 'block';
+  }
+  
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  verifyDocument();
+</script>
+</body>
+</html>
