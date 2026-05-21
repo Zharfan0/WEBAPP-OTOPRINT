@@ -256,12 +256,14 @@ body {
   align-items: center;
 }
 
-.modal-content {
+#editTemplateModal .modal-content {
   background: white;
   border-radius: 20px;
   padding: 24px;
   max-height: 90vh;
   overflow-y: auto;
+  max-width: 1300px;
+  width: 95%;
 }
 
 .modal-header {
@@ -281,6 +283,68 @@ body {
 .modal-close {
   cursor: pointer;
   font-size: 24px;
+}
+
+/* Modal Field - perbaikan tampilan solid */
+#fieldModal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+#fieldModal .modal-content {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 35px rgba(0, 0, 0, 0.2);
+}
+
+#fieldModal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+#fieldModal .modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+#fieldModal .modal-close {
+  cursor: pointer;
+  font-size: 28px;
+  color: #999;
+}
+
+#fieldModal .modal-close:hover {
+  color: #333;
+}
+
+#fieldModal .modal-body {
+  margin-bottom: 20px;
+}
+
+#fieldModal .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
 }
 
 .form-group {
@@ -429,16 +493,30 @@ body {
   display: flex;
   gap: 24px;
   flex-wrap: wrap;
+  align-items: flex-start;  /* penting untuk sticky */
 }
 
 .edit-modal-left {
-  flex: 1;
-  min-width: 300px;
+  flex: 1.2;
+  min-width: 320px;
 }
 
 .edit-modal-right {
-  flex: 1;
-  min-width: 300px;
+  flex: 0.9;
+  min-width: 650px;  /* ← ubah minimal lebar */
+  position: sticky;
+  top: 24px;
+  align-self: flex-start;
+}
+
+/* Opsional: batasi tinggi preview container */
+.preview-container {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f5f5f5;
+  height: 650px;
+  position: relative;
 }
 
 /* Move buttons for field ordering */
@@ -583,7 +661,7 @@ body {
 
 <!-- MODAL EDIT TEMPLATE (Dengan Field + Preview) -->
 <div id="editTemplateModal" class="modal">
-  <div class="modal-content" style="max-width: 1000px; width: 95%;">
+  <div class="modal-content" style="max-width: 1200px; width: 95%;">
     <div class="modal-header">
       <div class="modal-title" id="editModalTitle">Edit Template</div>
       <div class="modal-close" onclick="closeEditTemplateModal()">&times;</div>
@@ -663,10 +741,10 @@ body {
       <div class="form-group">
         <label>Sumber Data</label>
         <select id="dataSource" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
-          <option value="MANUAL">✍️ Manual - Diisi User</option>
-          <option value="AUTO_KRS">📚 Auto KRS - Dari Database Mahasiswa</option>
-          <option value="SYSTEM">⚙️ System - Generate Otomatis</option>
-          <option value="MASTER_SIGNATURE">🖊️ Tanda Tangan - Dari Master Signature</option>
+          <option value="MANUAL">Manual - Diisi User</option>
+          <option value="AUTO_KRS">Auto KRS - Dari Database Mahasiswa</option>
+          <option value="SYSTEM">System - Generate Otomatis</option>
+          <option value="MASTER_SIGNATURE">Tanda Tangan - Dari Master Signature</option>
         </select>
       </div>
 
@@ -938,7 +1016,7 @@ async function loadFields(templateId) {
 function renderFieldsList() {
   const container = document.getElementById('fieldsContainer');
   if (!currentFields.length) {
-    container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Belum ada field. Klik "Tambah Field".</div>';
+    container.innerHTML = '<div style="text-align: center; padding: 32px 20px; color: #999;">Belum ada field. Klik "Tambah Field".</div>';
     return;
   }
   
@@ -957,86 +1035,109 @@ function renderFieldsList() {
   
   // Render MANUAL fields (dengan tombol move)
   if (sortedManual.length) {
-    html += `<div style="margin-bottom: 16px;"><strong style="color: #006A42;">📝 Field Input User (dapat diurutkan)</strong></div>`;
+    html += `
+      <div style="margin-bottom: 20px; padding-bottom: 8px; border-bottom: 2px solid #e0e0e0;">
+        <strong style="color: #006A42; font-size: 13px;">
+          <i class="bi bi-pencil-square"></i> Field Input User (dapat diurutkan)
+        </strong>
+      </div>
+    `;
+    
+    html += '<div style="display: flex; flex-direction: column; gap: 12px;">';
     html += sortedManual.map((f, index) => {
       const displayOrder = f.field_order !== null ? f.field_order : (index + 1);
-      const bracketFormat = `{{${f.field_name}}}`;
+      const bracketFormat = `{%${f.field_name}%}`;
       
       return `
-        <div class="field-item" data-field-id="${f.id}">
-          <div class="field-info">
-            <div class="field-name">
-              <span class="field-order-number">${displayOrder}.</span>
-              <code style="background:#e9ecef; padding:2px 6px; border-radius:4px;">${bracketFormat}</code>
-              <span class="source-info manual">Manual</span>
+        <div class="field-item" style="display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; border-radius: 10px; padding: 14px 16px;">
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span style="font-weight: 700; color: #006A42; min-width: 30px;">${displayOrder}.</span>
+              <code style="background: #e9ecef; padding: 4px 10px; border-radius: 6px; font-size: 12px;">${bracketFormat}</code>
+              <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #e8f5e9; color: #006A42;">Manual</span>
             </div>
-            <div class="field-meta">${escapeHtml(f.label || '-')}</div>
+            <div style="font-size: 12px; color: #666; margin-top: 6px;">${escapeHtml(f.label || '-')}</div>
           </div>
-          <div class="field-actions">
-            <button class="btn-move-up" onclick="moveField(${f.id}, 'up')" ${index === 0 ? 'disabled' : ''} title="Pindah ke atas">
+          <div style="display: flex; gap: 4px; margin-left: 12px;">
+            <button class="btn-move-up" onclick="moveField(${f.id}, 'up')" ${index === 0 ? 'disabled' : ''} title="Pindah ke atas" style="background: #f0f0f0; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; padding: 5px 9px; font-size: 14px; ${index === 0 ? 'opacity: 0.4; cursor: not-allowed;' : ''}">
               <i class="bi bi-arrow-up"></i>
             </button>
-            <button class="btn-move-down" onclick="moveField(${f.id}, 'down')" ${index === sortedManual.length-1 ? 'disabled' : ''} title="Pindah ke bawah">
+            <button class="btn-move-down" onclick="moveField(${f.id}, 'down')" ${index === sortedManual.length-1 ? 'disabled' : ''} title="Pindah ke bawah" style="background: #f0f0f0; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; padding: 5px 9px; font-size: 14px; ${index === sortedManual.length-1 ? 'opacity: 0.4; cursor: not-allowed;' : ''}">
               <i class="bi bi-arrow-down"></i>
             </button>
-            <button class="btn-edit" style="background:none; color:#0d6efd; border:none; cursor:pointer; padding:4px 8px;" onclick="editField(${f.id})" title="Edit">
+            <button class="btn-edit" onclick="editField(${f.id})" title="Edit" style="background: none; border: none; cursor: pointer; padding: 5px 8px; color: #0d6efd;">
               <i class="bi bi-pencil"></i>
             </button>
-            <button class="btn-delete" style="background:none; color:#dc3545; border:none; cursor:pointer; padding:4px 8px;" onclick="deleteField(${f.id})" title="Hapus">
+            <button class="btn-delete" onclick="deleteField(${f.id})" title="Hapus" style="background: none; border: none; cursor: pointer; padding: 5px 8px; color: #dc3545;">
               <i class="bi bi-trash"></i>
             </button>
           </div>
         </div>
       `;
     }).join('');
+    html += '</div>';
   }
   
   // Render non-MANUAL fields (tanpa tombol move)
   if (nonManualFields.length) {
-    html += `<div style="margin: 16px 0 8px;"><strong style="color: #888;">⚙️ Field Sistem (tidak dapat diurutkan)</strong></div>`;
+    html += `
+      <div style="margin: 24px 0 16px 0; padding-bottom: 8px; border-bottom: 2px solid #e0e0e0;">
+        <strong style="color: #888; font-size: 13px;">
+          <i class="bi bi-gear"></i> Field Sistem (tidak dapat diurutkan)
+        </strong>
+      </div>
+    `;
+    
+    html += '<div style="display: flex; flex-direction: column; gap: 12px;">';
     html += nonManualFields.map(f => {
       let bracketFormat = '';
       let sourceText = '';
       let sourceClass = '';
+      let sourceColor = '';
       
       if (f.data_source === 'AUTO_KRS') {
-        bracketFormat = `{{${f.field_name}}}`;
+        bracketFormat = `{%${f.field_name}%}`;
         sourceText = 'Auto KRS';
         sourceClass = 'auto';
+        sourceColor = '#0d6efd';
       } else if (f.data_source === 'SYSTEM') {
-        bracketFormat = `{{${f.field_name}}}`;
+        bracketFormat = `{%${f.field_name}%}`;
         sourceText = 'System';
         sourceClass = 'system';
+        sourceColor = '#856404';
       } else if (f.data_source === 'MASTER_SIGNATURE') {
         bracketFormat = `{%${f.field_name}}`;
         sourceText = 'Tanda Tangan';
         sourceClass = 'signature';
+        sourceColor = '#006A42';
       } else {
-        bracketFormat = `{{${f.field_name}}}`;
+        bracketFormat = `{%${f.field_name}%}`;
         sourceText = 'Manual';
         sourceClass = 'manual';
+        sourceColor = '#6c757d';
       }
       
       return `
-        <div class="field-item" data-field-id="${f.id}">
-          <div class="field-info">
-            <div class="field-name">
-              <code style="background:#e9ecef; padding:2px 6px; border-radius:4px;">${bracketFormat}</code>
-              <span class="source-info ${sourceClass}">${sourceText}</span>
+        <div class="field-item" style="display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; border-radius: 10px; padding: 14px 16px;">
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <code style="background: #e9ecef; padding: 4px 10px; border-radius: 6px; font-size: 12px;">${bracketFormat}</code>
+              <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #e3f2fd; color: ${sourceColor};">${sourceText}</span>
             </div>
-            <div class="field-meta">${escapeHtml(f.label || '-')}</div>
+            <div style="font-size: 12px; color: #666; margin-top: 6px;">${escapeHtml(f.label || '-')}</div>
           </div>
-          <div class="field-actions">
-            <button class="btn-edit" style="background:none; color:#0d6efd; border:none; cursor:pointer; padding:4px 8px;" onclick="editField(${f.id})" title="Edit">
+          <div style="display: flex; gap: 4px; margin-left: 12px;">
+            <button class="btn-edit" onclick="editField(${f.id})" title="Edit" style="background: none; border: none; cursor: pointer; padding: 5px 8px; color: #0d6efd;">
               <i class="bi bi-pencil"></i>
             </button>
-            <button class="btn-delete" style="background:none; color:#dc3545; border:none; cursor:pointer; padding:4px 8px;" onclick="deleteField(${f.id})" title="Hapus">
+            <button class="btn-delete" onclick="deleteField(${f.id})" title="Hapus" style="background: none; border: none; cursor: pointer; padding: 5px 8px; color: #dc3545;">
               <i class="bi bi-trash"></i>
             </button>
           </div>
         </div>
       `;
     }).join('');
+    html += '</div>';
   }
   
   container.innerHTML = html;
