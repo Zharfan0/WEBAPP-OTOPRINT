@@ -437,21 +437,31 @@ async function logout() {
     window.location.href = '/login.html';
 }
 
-// ============ LOAD DOCUMENT TYPES ============
+// ============ LOAD DOCUMENT TYPES FOR FILTER ============
 async function loadDocumentTypes() {
     try {
-        const response = await fetch('/api/documents');
-        documentTypes = await response.json();
+        // Gunakan endpoint yang sudah ada (untuk admin)
+        const response = await fetch('/api/templates');
+        const templates = await response.json();
         
-        const select = document.getElementById('docTypeFilter');
-        documentTypes.forEach(doc => {
+        const docTypeSelect = document.getElementById('docTypeFilter');
+        if (!docTypeSelect) return;
+        
+        // Clear existing options (keep first option "Semua")
+        docTypeSelect.innerHTML = '<option value="">Semua Dokumen</option>';
+        
+        // Add options from database
+        templates.forEach(template => {
             const option = document.createElement('option');
-            option.value = doc.id;
-            option.textContent = doc.name;
-            select.appendChild(option);
+            option.value = template.id;
+            option.textContent = `${template.name_id}${template.name_en ? ' (' + template.name_en + ')' : ''}`;
+            docTypeSelect.appendChild(option);
         });
+        
+        console.log(`✅ ${templates.length} jenis dokumen dimuat`);
+        
     } catch (error) {
-        console.error('Load document types error:', error);
+        console.error('Gagal memuat jenis dokumen:', error);
     }
 }
 
@@ -592,6 +602,7 @@ function goToPage(page) {
 
 // ============ INIT ============
 document.addEventListener('DOMContentLoaded', async () => {
+    loadDocumentTypes();
     const admin = await checkSession();
     if (admin) {
         await loadDocumentTypes();

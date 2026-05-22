@@ -20,6 +20,18 @@ const PORT = 3000;
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Middleware untuk cek session
+app.get('/', (req, res) => {
+    if (req.session.user) {
+        if (req.session.user.role === 'admin') {
+            return res.redirect('/admin/insight.html');
+        } else {
+            return res.redirect('/pages/dashboard.html');
+        }
+    }
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
 // Static files
 const frontendPath = path.join(__dirname, '..', 'frontend');
 console.log('Frontend path:', frontendPath);

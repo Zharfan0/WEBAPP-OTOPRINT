@@ -1,0 +1,16 @@
+# Hapus node_modules dari git (tapi tetap di lokal)
+git rm -r --cached backend/node_modules
+git rm -r --cached node_modules
+
+# Hapus database
+git rm --cached backend/database.sqlite
+
+# Hapus file .env
+git rm --cached .env
+
+# Hapus file sertifikat
+git rm --cached backend/cert.pem
+git rm --cached backend/key.pem
+
+# Hapus file log
+git rm --cached *.log
