@@ -1,8 +1,3 @@
-Baik, saya buat **README.md** full dan langsung bisa copas.
-
----
-
-## 📄 **README.md**
 
 ```markdown
 # 🖨️ OTOPRINT - Vending Machine Dokumen Akademik
