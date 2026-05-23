@@ -319,9 +319,23 @@ app.put('/api/templates/:id', (req, res) => {
             let updateQuery = `UPDATE templates SET name_id = ?, name_en = ?, updated_at = CURRENT_TIMESTAMP`;
             let params = [name_id.trim(), name_en?.trim() || ''];
             
-            if (file) {
+           if (file) {
                 const oldFilePath = path.join(__dirname, '../frontend', template.file_path);
-                if (fs.existsSync(oldFilePath)) fs.unlinkSync(oldFilePath);
+                const newFilePath = path.join(__dirname, '../frontend', `templates/${file.filename}`);
+                
+                // Hanya hapus jika file lama BERBEDA dengan file baru
+                // dan bukan file yang sedang aktif dipakai preview
+                if (oldFilePath !== newFilePath && fs.existsSync(oldFilePath)) {
+                    setTimeout(() => {
+                        try { 
+                            fs.unlinkSync(oldFilePath);
+                            console.log('✅ File lama dihapus:', oldFilePath);
+                        } catch(e) { 
+                            console.warn('⚠️ File lama tidak bisa dihapus:', e.message);
+                        }
+                    }, 3000); // tunggu 3 detik agar LibreOffice selesai
+                }
+                
                 updateQuery += `, filename = ?, file_path = ?`;
                 params.push(file.originalname, `templates/${file.filename}`);
             }

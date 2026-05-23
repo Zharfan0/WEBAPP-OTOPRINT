@@ -489,9 +489,10 @@ class SessionTimeout {
             }, true);
         });
         
+        // 🔥 PERBAIKAN: Tombol Kembali -> LOGOUT
         document.getElementById('afkFinishBtn').addEventListener('click', () => {
             this.modal.hide();
-            this.resetTimeout();
+            this.logout();  // ← langsung logout, bukan resetTimeout
         });
         
         document.getElementById('timeoutModal').addEventListener('shown.bs.modal', () => {
@@ -522,11 +523,111 @@ class SessionTimeout {
     }
     
     async logout() {
+        console.log('🚪 AFK Logout dipanggil');
         this.modalActive = false;
         if (this.timeoutTimer) clearTimeout(this.timeoutTimer);
         await fetch('/api/logout', { method: 'POST' });
         sessionStorage.clear();
         window.location.href = '/login.html';
+    }
+}
+
+// ============ GET AUTO DATA ============
+function getAutoData(fieldName, sourceKey) {
+    const userData = {
+        name: currentUser?.name || '',
+        nim: currentUser?.nim || '',
+        prodi: 'Teknologi Informasi',
+        ipk: '3.75',
+        sks: '110'
+    };
+    return userData[sourceKey] || '';
+}
+
+// ============ GENERATE SYSTEM DATA ============
+function generateSystemData() {
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const date = new Date();
+    const formattedDate = `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+    
+    return {
+        tanggal: formattedDate,
+        tanggal_surat: formattedDate,
+        nomor_surat: `OTP/${date.getFullYear()}/${Math.floor(Math.random() * 1000)}`,
+        qr_code: `OTOPRINT-${Date.now()}`
+    };
+}
+
+// ============ CEK APAKAH TEMPLATE MEMILIKI FIELD MANUAL ============
+async function hasManualFields(templateId) {
+    try {
+        const response = await fetch(`/api/user/templates/${templateId}/fields`);
+        const fields = await response.json();
+        
+        // Cek apakah ada field dengan data_source MANUAL
+        return fields.some(field => field.data_source === 'MANUAL');
+    } catch (error) {
+        console.error('Error checking manual fields:', error);
+        return true; // default ke form jika error
+    }
+}
+
+// ============ HANDLE DOKUMEN CLICK ============
+async function handleDocumentClick(templateId) {
+    // Tampilkan loading
+    const btn = event.currentTarget.querySelector('.doc-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Memproses...';
+    btn.disabled = true;
+    
+    try {
+        const hasManual = await hasManualFields(templateId);
+        
+        if (hasManual) {
+            // Ada field manual → redirect ke form
+            window.location.href = `form-generator.html?id=${templateId}`;
+        } else {
+            // Tidak ada field manual → langsung ke preview
+            // Buat data kosong
+            const fieldsResponse = await fetch(`/api/user/templates/${templateId}/fields`);
+            const fields = await fieldsResponse.json();
+            
+            const templateResponse = await fetch(`/api/user/templates/${templateId}`);
+            const template = await templateResponse.json();
+            
+            // Generate data untuk AUTO_KRS dan SYSTEM
+            const autoData = {};
+            const systemData = generateSystemData();
+            
+            for (const field of fields) {
+                if (field.data_source === 'AUTO_KRS') {
+                    autoData[field.field_name] = getAutoData(field.field_name, field.source_key);
+                } else if (field.data_source === 'SYSTEM') {
+                    autoData[field.field_name] = systemData[field.source_key] || '';
+                } else if (field.data_source === 'MASTER_SIGNATURE') {
+                    autoData[field.field_name] = null;
+                }
+            }
+            
+            // Simpan ke localStorage
+            const storageData = {
+                templateId: templateId,
+                templateName: template.name_id,
+                fields: fields,
+                data: autoData
+            };
+            
+            localStorage.setItem('formData', JSON.stringify(storageData));
+            
+            // Redirect ke preview
+            window.location.href = `preview-generator.html?id=${templateId}`;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Gagal memproses dokumen');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 }
 
@@ -557,7 +658,7 @@ async function loadTemplates() {
         };
         
         grid.innerHTML = templates.map(template => `
-            <div class="doc-card" onclick="window.location.href='form-generator.html?id=${template.id}'">
+            <div class="doc-card" data-template-id="${template.id}">
                 <div class="doc-icon">
                     <i class="${getIcon(template.name_id)}"></i>
                 </div>
@@ -568,6 +669,12 @@ async function loadTemplates() {
                 </div>
             </div>
         `).join('');
+
+        // Attach event listener ke setiap card
+        document.querySelectorAll('.doc-card').forEach(card => {
+            const templateId = card.dataset.templateId;
+            card.addEventListener('click', () => handleDocumentClick(templateId));
+        });
         
     } catch (error) {
         console.error('Load templates error:', error);

@@ -310,6 +310,13 @@ body {
   box-shadow: 0 20px 35px rgba(0, 0, 0, 0.2);
 }
 
+/* Style untuk option yang disabled */
+select option:disabled {
+  background-color: #f0f0f0;
+  color: #999;
+  font-style: italic;
+}
+
 /* Modal Field - perbaikan tampilan solid */
 #fieldModal {
   display: none;
@@ -623,11 +630,11 @@ body {
   <div class="menu-item" onclick="window.location.href='/admin/templates_V2.html'">
     <i class="bi bi-grid-3x3-gap-fill"></i> Template V2
   </div>
-  <div class="menu-item" onclick="window.location.href='/admin/maintenance.html'">
-    <i class="bi bi-gear"></i> Maintenance
-  </div>
   <div class="menu-item" onclick="window.location.href='/admin/signature.html'">
     <i class="bi bi-pen"></i> Master Signature
+  </div>
+    <div class="menu-item" onclick="window.location.href='/admin/maintenance.html'">
+    <i class="bi bi-gear"></i> Maintenance
   </div>
 
   <div class="logout" id="logoutBtn">
@@ -673,7 +680,7 @@ body {
         <label>File Template (.docx) <span style="color:red;">*</span></label>
         <input type="file" id="createTemplateFile" accept=".docx">
         <div style="font-size: 12px; color: #666; margin-top: 4px;">
-          <i class="bi bi-info-circle"></i> Gunakan placeholder <strong>{%field_name%}</strong> di file Word
+          <i class="bi bi-info-circle"></i> Gunakan placeholder <strong>{field_name}</strong> di file Word
         </div>
       </div>
     </div>
@@ -759,7 +766,7 @@ body {
           <option value="">-- Pilih placeholder dari template --</option>
         </select>
         <div style="font-size: 11px; color: #666;">
-          ⚡ Akan menjadi <code id="placeholderPreview">{{nama}}</code> di form user
+          ⚡ Akan menjadi <code id="placeholderPreview">{...} atau {%...}</code> di form user
         </div>
       </div>
 
@@ -1071,7 +1078,7 @@ function renderFieldsList() {
     html += '<div style="display: flex; flex-direction: column; gap: 12px;">';
     html += sortedManual.map((f, index) => {
       const displayOrder = f.field_order !== null ? f.field_order : (index + 1);
-      const bracketFormat = `{%${f.field_name}%}`;
+      const bracketFormat = `{${f.field_name}}`;
       
       return `
         <div class="field-item" style="display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; border-radius: 10px; padding: 14px 16px;">
@@ -1121,12 +1128,12 @@ function renderFieldsList() {
       let sourceColor = '';
       
       if (f.data_source === 'AUTO_KRS') {
-        bracketFormat = `{%${f.field_name}%}`;
+        bracketFormat = `{${f.field_name}}`;
         sourceText = 'Auto KRS';
         sourceClass = 'auto';
         sourceColor = '#0d6efd';
       } else if (f.data_source === 'SYSTEM') {
-        bracketFormat = `{%${f.field_name}%}`;
+        bracketFormat = `{${f.field_name}}`;
         sourceText = 'System';
         sourceClass = 'system';
         sourceColor = '#856404';
@@ -1136,7 +1143,7 @@ function renderFieldsList() {
         sourceClass = 'signature';
         sourceColor = '#006A42';
       } else {
-        bracketFormat = `{%${f.field_name}%}`;
+        bracketFormat = `{${f.field_name}}`;
         sourceText = 'Manual';
         sourceClass = 'manual';
         sourceColor = '#6c757d';
@@ -1551,6 +1558,10 @@ async function loadPlaceholdersFromTemplate() {
   
   try {
     const placeholders = await scanDocxPlaceholders(file);
+    
+    // Ambil daftar placeholder yang sudah digunakan
+    const usedFieldNames = currentFields.map(f => f.field_name);
+    
     fieldNameSelect.innerHTML = '<option value="">-- Pilih placeholder dari template --</option>';
     
     if (placeholders.length === 0) {
@@ -1560,6 +1571,15 @@ async function loadPlaceholdersFromTemplate() {
         const option = document.createElement('option');
         option.value = p.name;
         option.textContent = p.name;
+        
+        // Cek apakah placeholder sudah digunakan
+        if (usedFieldNames.includes(p.name)) {
+          option.disabled = true;
+          option.style.backgroundColor = '#f0f0f0';
+          option.style.color = '#999';
+          option.textContent = p.name + ' (sudah digunakan)';
+        }
+        
         fieldNameSelect.appendChild(option);
       });
     }

@@ -631,6 +631,21 @@ async function generatePDF() {
     }
     currentAllData = allData;
 
+    // 🔥 CEK APAKAH ADA FIELD MANUAL
+    const hasManualFields = currentFormData.fields?.some(f => f.data_source === 'MANUAL') || false;
+    
+    // 🔥 SET TOMBOL CANCEL BERDASARKAN ADA/TIDAKNYA MANUAL FIELD
+    const backLink = document.getElementById('backLink');
+    if (hasManualFields) {
+        // Ada manual field -> cancel kembali ke form
+        backLink.href = `form-generator.html?id=${currentTemplateId}`;
+        backLink.textContent = 'Kembali';
+    } else {
+        // Tidak ada manual field -> cancel langsung ke dashboard
+        backLink.href = 'dashboard.html';
+        backLink.textContent = 'Kembali ke Dashboard';
+    }
+
     try {
         const response = await fetch('/api/generate-pdf', {
             method: 'POST',
@@ -644,6 +659,9 @@ async function generatePDF() {
 
         if (!response.ok) throw new Error(`Server error ${response.status}`);
         const result = await response.json();
+
+        console.log('📥 Response:', result.success, '| error:', result.error);
+        console.log('📄 pdfBase64 length:', result.pdfBase64?.length);
 
         if (!result.success || !result.pdfBase64) {
             throw new Error(result.error || 'Respons tidak valid');
@@ -660,13 +678,15 @@ async function generatePDF() {
         currentPdfUrl = URL.createObjectURL(blob);
 
         viewer.innerHTML = `<iframe src="${currentPdfUrl}" style="width:100%;height:100%;border:none;"></iframe>`;
-        document.getElementById('backLink').href = `form-generator.html?id=${currentTemplateId}`;
         document.getElementById('printBtn').disabled = false;
 
     } catch (error) {
         console.error('Generate error:', error);
         showError(viewer, error.message);
     }
+
+    console.log('📦 Data yang diterima dari localStorage:', allData);
+    console.log('📦 Field list:', currentFormData.fields);
 }
 
 // ============ PRINT ============
