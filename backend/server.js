@@ -196,10 +196,30 @@ app.post('/api/logout', (req, res) => {
     res.json({ success: true });
 });
 
-// Check session
 app.get('/api/me', (req, res) => {
     if (req.session.user) {
-        res.json({ success: true, user: req.session.user });
+        // Ambil data lengkap dari database
+        db.get(`SELECT * FROM users WHERE id = ?`, [req.session.user.id], (err, user) => {
+            if (err || !user) {
+                return res.json({ success: true, user: req.session.user });
+            }
+            res.json({ 
+                success: true, 
+                user: {
+                    id: user.id,
+                    nim: user.nim,
+                    name: user.name,
+                    role: user.role,
+                    prodi: user.prodi,
+                    fakultas: user.fakultas,
+                    ipk: user.ipk,
+                    sks: user.sks,
+                    semester: user.semester,
+                    tempat_lahir: user.tempat_lahir,
+                    tgl_lahir: user.tgl_lahir
+                }
+            });
+        });
     } else {
         res.json({ success: false });
     }
@@ -1282,6 +1302,50 @@ app.post('/api/generate-pdf', async (req, res) => {
         if (!fs.existsSync(templatePath)) {
             throw new Error(`File template tidak ada: ${templatePath}`);
         }
+
+        // Untuk menentukan Semester Ganjil/Genap
+        function getCurrentSemester() {
+            const month = new Date().getMonth() + 1;
+            if ((month >= 8 && month <= 12) || month === 1) {
+                return 'Ganjil';
+            }
+            return 'Genap';
+        }
+
+        // Di dalam endpoint generate-pdf atau print-to-printer
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+
+        // Format tanggal Indonesia
+        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        const formattedDate = `${now.getDate()} ${months[now.getMonth()]} ${year}`;
+
+        // Tahun akademik
+        let tahunAkademik;
+        if (month >= 7) {
+            tahunAkademik = `${year}/${year + 1}`;
+        } else {
+            tahunAkademik = `${year - 1}/${year}`;
+        }
+
+        // Semester
+        let semester;
+        if ((month >= 8 && month <= 12) || month === 1) {
+            semester = 'Ganjil';
+        } else {
+            semester = 'Genap';
+        }
+
+        const systemData = {
+            tanggal: formattedDate,
+            tanggal_surat: formattedDate,
+            nomor_surat: `OTP/${year}/${Math.floor(Math.random() * 1000)}`,
+            qr_code: `OTOPRINT-${Date.now()}`,
+            tahun_akademik: tahunAkademik,
+            semester: semester
+        };
 
         // ── 2. Ambil field MASTER_SIGNATURE dari DB ────────────────────
         const signatureFields = await new Promise((resolve, reject) => {

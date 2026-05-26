@@ -615,11 +615,35 @@ async function generatePDF() {
 
     const currentFormData = JSON.parse(storedData);
     const date = new Date();
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // Januari = 1
+
+    // Format tanggal
+    const formattedDate = formatDateIndonesian();
+
+    // Tahun akademik
+    let tahunAkademik;
+    if (month >= 7) {
+        tahunAkademik = `${year}/${year + 1}`;
+    } else {
+        tahunAkademik = `${year - 1}/${year}`;
+    }
+
+    // Semester Ganjil/Genap
+    let semester;
+    if ((month >= 8 && month <= 12) || month === 1) {
+        semester = 'Ganjil';
+    } else {
+        semester = 'Genap';
+    }
+
     const systemData = {
-        tanggal: formatDateIndonesian(),
-        tanggal_surat: formatDateIndonesian(),
-        nomor_surat: `OTP/${date.getFullYear()}/${Math.floor(Math.random() * 1000)}`,
-        qr_code: `OTOPRINT-${Date.now()}`
+        tanggal: formattedDate,
+        tanggal_surat: formattedDate,
+        nomor_surat: `OTP/${year}/${Math.floor(Math.random() * 1000)}`,
+        qr_code: `OTOPRINT-${Date.now()}`,
+        tahun_akademik: tahunAkademik,
+        semester: semester
     };
 
     const allData = { ...currentFormData.data };
@@ -630,6 +654,7 @@ async function generatePDF() {
         }
     }
     currentAllData = allData;
+
 
     // 🔥 CEK APAKAH ADA FIELD MANUAL
     const hasManualFields = currentFormData.fields?.some(f => f.data_source === 'MANUAL') || false;

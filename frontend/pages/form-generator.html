@@ -430,45 +430,59 @@ async function loadTemplateAndFields() {
 
 // ============ GET AUTO DATA FROM USER SESSION ============
 function getAutoData(fieldName, sourceKey) {
-    const userData = {
-        name: currentUser.name || '',
-        nim: currentUser.nim || '',
-        prodi: 'Teknologi Informasi',
-        ipk: '3.75',
-        sks: '110'
+   const userData = {
+        name: currentUser?.name || '',
+        nim: currentUser?.nim || '',
+        prodi: currentUser?.prodi || '',
+        fakultas: currentUser?.fakultas || '',
+        ipk: currentUser?.ipk || '',
+        sks: currentUser?.sks || '',
+        semester: currentUser?.semester || '',
+        tempat_lahir: currentUser?.tempat_lahir || '',
+        tgl_lahir: currentUser?.tgl_lahir || ''
     };
     
     return userData[sourceKey] || '';
 }
 
 // ======== SYSTEM DATA CODE =========
-// ============ GET AUTO DATA ============
-function getAutoData(fieldName, sourceKey) {
-    const userData = {
-        name: currentUser?.name || '',
-        nim: currentUser?.nim || '',
-        prodi: 'Teknologi Informasi',
-        ipk: '3.75',
-        sks: '110'
-    };
-    return userData[sourceKey] || '';
-}
-
 // ============ GENERATE SYSTEM DATA ============
 function generateSystemData() {
     const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
                     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const date = new Date();
-    const formattedDate = `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+
+    const formattedDate = `${date.getDate()} ${months[date.getMonth()]} ${year}`;
+
+    // Tahun akademik
+    let tahunAkademik;
+    if (month >= 7) {
+        tahunAkademik = `${year}/${year + 1}`;
+    } else {
+        tahunAkademik = `${year - 1}/${year}`;
+    }
+    
+    // Semester Ganjil/Genap
+    let semester;
+    if ((month >= 8 && month <= 12) || (month >= 1 && month <= 1)) {
+        semester = 'Ganjil';
+    } else {
+        semester = 'Genap';
+    }
     
     return {
         tanggal: formattedDate,
         tanggal_surat: formattedDate,
-        nomor_surat: `OTP/${date.getFullYear()}/${Math.floor(Math.random() * 1000)}`,
+        nomor_surat: `OTP/${year}/${Math.floor(Math.random() * 1000)}`,
         qr_code: `OTOPRINT-${Date.now()}`,
-        qr_signature: `OTOPRINT-${Date.now()}`
+        tahun_akademik: tahunAkademik,
+        semester: semester  // ← TAMBAHKAN
     };
 }
+
+
 
 // ============ RENDER FORM DYNAMICALLY ============
 function renderForm() {

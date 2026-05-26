@@ -819,15 +819,32 @@ const autoKrsOptions = [
   { value: 'name', label: 'Nama Mahasiswa' },
   { value: 'nim', label: 'NIM' },
   { value: 'prodi', label: 'Program Studi' },
+  { value: 'fakultas', label: 'Fakultas' },        // ← TAMBAHKAN
   { value: 'ipk', label: 'IPK' },
-  { value: 'sks', label: 'Total SKS' }
+  { value: 'sks', label: 'Total SKS' },
+  { value: 'tempat_lahir', label: 'Tempat Lahir' }, // ← TAMBAHKAN
+  { value: 'tgl_lahir', label: 'Tanggal Lahir' }    // ← TAMBAHKAN
 ];
 
 const systemOptions = [
-  { value: 'tanggal', label: 'Tanggal (Otomatis)' },
+  { value: 'tanggal', label: 'Tanggal' },
   { value: 'nomor_surat', label: 'Nomor Surat' },
-  { value: 'qr_code', label: 'QR Code' }
+  { value: 'qr_code', label: 'QR Code' },
+  { value: 'tahun_akademik', label: 'Tahun Akademik' },  // ← TAMBAHKAN
+  { value: 'semester', label: 'Semester (Ganjil/Genap)' }  // ← TAMBAHKAN
+  
 ];
+
+function getCurrentSemester() {
+    const month = new Date().getMonth() + 1;
+    
+    // September(9), Oktober(10), November(11), Desember(12), Januari(1), Februari(2) = Ganjil
+    if ((month >= 9 && month <= 12) || (month >= 1 && month <= 2)) {
+        return 'Ganjil';
+    } else {
+        return 'Genap';
+    }
+}
 
 // ============ SESSION ============
 async function checkSession() {
