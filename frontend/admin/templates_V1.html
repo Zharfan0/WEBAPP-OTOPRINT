@@ -317,7 +317,7 @@ select option:disabled {
   font-style: italic;
 }
 
-/* Modal Field - perbaikan tampilan solid */
+/* Modal Field - layout 2 kolom */
 #fieldModal {
   display: none;
   position: fixed;
@@ -331,15 +331,67 @@ select option:disabled {
   align-items: center;
 }
 
+/* Default: modal sempit (mode MANUAL/AUTO/SYSTEM) */
 #fieldModal .modal-content {
   background: white;
   border-radius: 20px;
   padding: 24px;
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
+  max-width: 520px;
+  width: 95%;
+  max-height: 92vh;
   overflow-y: auto;
   box-shadow: 0 20px 35px rgba(0, 0, 0, 0.2);
+  transition: max-width 0.3s ease;
+}
+
+/* Saat mode QR aktif: modal melebar jadi 2 kolom */
+#fieldModal .modal-content.qr-mode {
+  max-width: 1100px;
+}
+
+/* Layout body — default: kolom kiri saja, centered */
+#fieldModal .field-modal-body {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* Default: form mengisi full width modal (centered otomatis) */
+#fieldModal .field-modal-left {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Saat qr-mode: kolom kiri jadi fixed 380px, kolom kanan muncul */
+#fieldModal .modal-content.qr-mode .field-modal-left {
+  flex: 0 0 380px;
+  min-width: 320px;
+}
+
+#fieldModal .field-modal-right {
+  flex: 1;
+  min-width: 0;
+  display: none; /* hidden by default, tampil saat qr-mode */
+}
+
+#fieldModal .modal-content.qr-mode .field-modal-right {
+  display: block;
+}
+
+/* Container preview di dalam field modal */
+#fieldModalPreviewContainer {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f5f5f5;
+  height: 600px;
+  position: relative;
+}
+
+#fieldModalPreviewContainer iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
 }
 
 #fieldModal .modal-header {
@@ -750,56 +802,148 @@ select option:disabled {
   </div>
 </div>
 
-<!-- MODAL FIELD - VERSI SIMPLIFIED -->
+<!-- MODAL FIELD - Layout 2 kolom (melebar saat QR mode) -->
 <div id="fieldModal" class="modal">
-  <div class="modal-content" style="max-width: 500px;">
+  <div class="modal-content" id="fieldModalContent">
     <div class="modal-header">
       <div class="modal-title" id="fieldModalTitle">Tambah Field</div>
       <div class="modal-close" onclick="closeFieldModal()">&times;</div>
     </div>
-    <div class="modal-body">
-      <input type="hidden" id="editFieldId">
-      
-      <div class="form-group">
-        <label>Placeholder <span style="color:#dc3545;">*</span></label>
-        <select id="fieldName" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
-          <option value="">-- Pilih placeholder dari template --</option>
-        </select>
-        <div style="font-size: 11px; color: #666;">
-          ⚡ Akan menjadi <code id="placeholderPreview">{...} atau {%...}</code> di form user
+
+    <!-- Body: 2 kolom. Kolom kanan hanya tampil saat QR mode -->
+    <div class="field-modal-body">
+
+      <!-- KOLOM KIRI: Form -->
+      <div class="field-modal-left">
+        <div class="modal-body">
+          <input type="hidden" id="editFieldId">
+          
+          <div class="form-group">
+            <label>Placeholder <span style="color:#dc3545;">*</span></label>
+            <select id="fieldName" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
+              <option value="">-- Pilih placeholder dari template --</option>
+            </select>
+            <div style="font-size: 11px; color: #666; margin-top: 4px;">
+              ⚡ Akan menjadi <code id="placeholderPreview">{...} atau {%...}</code> di form user
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Sumber Data</label>
+            <select id="dataSource" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
+              <option value="MANUAL">Manual - Diisi User</option>
+              <option value="AUTO_KRS">Auto KRS - Dari Database Mahasiswa</option>
+              <option value="SYSTEM">System - Generate Otomatis</option>
+              <option value="MASTER_SIGNATURE">Tanda Tangan - Dari Master Signature</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Label (Tampilan di Form)</label>
+            <input type="text" id="fieldLabel" placeholder="Contoh: Nama Mahasiswa">
+          </div>
+
+          <div class="form-group" id="sourceKeyGroup" style="display:none;">
+            <label>Pilih Data</label>
+            <select id="sourceKey" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
+              <option value="">-- Pilih --</option>
+            </select>
+          </div>
+
+          <!-- Radio: pilih jenis signature -->
+          <div class="form-group" id="signatureDisplayGroup" style="display:none;">
+            <label>Jenis Tanda Tangan</label>
+            <div style="display: flex; gap: 20px; margin-bottom: 12px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
+                <input type="radio" name="signatureTypeRadio" value="image" checked>
+                🖼️ Gambar Tanda Tangan
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal;">
+                <input type="radio" name="signatureTypeRadio" value="qr">
+                📱 Signature QR
+              </label>
+            </div>
+            <div style="font-size: 11px; color: #666;">
+              <i class="bi bi-info-circle"></i>
+              <strong>Gambar:</strong> Inject gambar TTD dosen ke dokumen.<br>
+              <strong>QR:</strong> Overlay QR verifikasi di PDF. Atur posisi & ukuran di bawah.
+            </div>
+          </div>
+
+          <!-- Dropdown dosen (mode image) -->
+          <div id="imageSignatureContainer" style="display:none;">
+            <div class="form-group">
+              <label>Pilih Tanda Tangan Dosen</label>
+              <select id="signatureSelect" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
+                <option value="">-- Pilih Tanda Tangan --</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Dropdown dosen (mode QR) — dosen tetap dipilih, QR mewakili TTD dosen tsb -->
+          <div id="qrSignatureDosenContainer" style="display:none;">
+            <div class="form-group">
+              <label>Pilih Tanda Tangan Dosen</label>
+              <select id="signatureSelectQr" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
+                <option value="">-- Pilih Tanda Tangan --</option>
+              </select>
+              <div style="font-size:11px; color:#666; margin-top:4px;">
+                <i class="bi bi-info-circle"></i> QR akan mewakili tanda tangan dosen ini. Setiap cetak menghasilkan QR unik.
+              </div>
+            </div>
+          </div>
+
+          <!-- Input koordinat & ukuran (mode QR) -->
+          <div id="qrSignatureContainer" style="display:none;">
+            <div class="form-group">
+              <label style="margin-bottom: 12px; display: block;">
+                📐 Posisi &amp; Ukuran QR Code
+              </label>
+              <div class="form-row" style="margin-bottom: 12px;">
+                <div>
+                  <label style="font-size: 12px; font-weight: normal;">X (dari kiri, pts)</label>
+                  <input type="number" id="qrPosX" value="460" step="10"
+                    style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px;">
+                </div>
+                <div>
+                  <label style="font-size: 12px; font-weight: normal;">Y (dari atas, pts)</label>
+                  <input type="number" id="qrPosY" value="700" step="10"
+                    style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px;">
+                </div>
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: normal;">Ukuran QR (pts) — berlaku untuk lebar &amp; tinggi (1:1)</label>
+                <input type="number" id="qrSize" value="100" step="10" min="50"
+                  style="width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:8px;">
+              </div>
+              <div style="font-size: 11px; color: #888; margin-top: 8px;">
+                <i class="bi bi-info-circle"></i>
+                1 cm ≈ 28 pts. A4 = 595×842 pts. Preview kanan menunjukkan posisi QR (kotak merah).
+              </div>
+            </div>
+          </div>
+
+        </div><!-- end modal-body -->
+      </div><!-- end field-modal-left -->
+
+      <!-- KOLOM KANAN: Preview PDF (hanya tampil saat QR mode) -->
+      <div class="field-modal-right">
+        <div style="font-weight: 600; margin-bottom: 10px; font-size: 14px;">
+          <i class="bi bi-eye"></i> Preview Posisi QR
         </div>
-      </div>
+        <div id="fieldModalPreviewContainer">
+          <div class="preview-placeholder">
+            <i class="bi bi-qr-code" style="font-size: 40px; opacity: 0.3;"></i>
+            <p style="font-size: 13px;">Preview akan muncul otomatis</p>
+          </div>
+        </div>
+        <button class="btn-preview" onclick="updateFieldModalQrPreview()" style="margin-top: 10px;">
+          <i class="bi bi-arrow-repeat"></i> Refresh Preview
+        </button>
+      </div><!-- end field-modal-right -->
 
-      <div class="form-group">
-        <label>Sumber Data</label>
-        <select id="dataSource" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
-          <option value="MANUAL">Manual - Diisi User</option>
-          <option value="AUTO_KRS">Auto KRS - Dari Database Mahasiswa</option>
-          <option value="SYSTEM">System - Generate Otomatis</option>
-          <option value="MASTER_SIGNATURE">Tanda Tangan - Dari Master Signature</option>
-        </select>
-      </div>
+    </div><!-- end field-modal-body -->
 
-      <div class="form-group">
-        <label>Label (Tampilan di Form)</label>
-        <input type="text" id="fieldLabel" placeholder="Contoh: Nama Mahasiswa">
-      </div>
-
-      <div class="form-group" id="sourceKeyGroup" style="display:none;">
-        <label>Pilih Data</label>
-        <select id="sourceKey" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
-          <option value="">-- Pilih --</option>
-        </select>
-      </div>
-
-      <div class="form-group" id="signatureSelectGroup" style="display:none;">
-        <label>Pilih Tanda Tangan Dosen</label>
-        <select id="signatureSelect" style="width:100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px;">
-          <option value="">-- Pilih Tanda Tangan --</option>
-        </select>
-      </div>
-
-    </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeFieldModal()">Batal</button>
       <button class="btn-save" onclick="saveField()">Simpan Field</button>
@@ -813,7 +957,10 @@ select option:disabled {
 let currentTemplateId = null;
 let currentFields = [];
 let currentEditFieldId = null;
-let currentPreviewPdfUrl = null;
+let currentPreviewPdfUrl = null;           // URL preview di Edit Template Modal (kanan)
+let currentFieldModalPreviewUrl = null;    // URL preview di Field Modal (kalibrasi QR)
+let currentQrPreviewController = null;     // AbortController untuk fetch preview QR
+let qrCoordinateDebounceTimer = null;      // Debouncer input koordinat
 
 const autoKrsOptions = [
   { value: 'name', label: 'Nama Mahasiswa' },
@@ -1050,7 +1197,123 @@ async function refreshPreview() {
   }
 }
 
-// ============ FIELDS CRUD ============
+// ============ PREVIEW QR DI FIELD MODAL (KALIBRASI) ============
+
+// Fungsi utama update preview QR di field modal (dipanggil debouncer atau manual)
+async function updateFieldModalQrPreview() {
+    const templateId = document.getElementById('editTemplateId').value;
+    if (!templateId) {
+        console.warn('⚠️ Tidak ada template ID, skip preview QR');
+        return;
+    }
+
+    const x      = parseInt(document.getElementById('qrPosX').value)  || 460;
+    const y      = parseInt(document.getElementById('qrPosY').value)  || 700;
+    const size   = parseInt(document.getElementById('qrSize').value)  || 100;
+    const width  = size;
+    const height = size;
+
+    if (size < 30) return;
+
+    const container = document.getElementById('fieldModalPreviewContainer');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="preview-placeholder">
+            <div class="spinner"></div>
+            <p style="font-size:13px;">Memuat preview QR...</p>
+        </div>`;
+
+    // Batalkan request sebelumnya
+    if (currentQrPreviewController) {
+        currentQrPreviewController.abort();
+    }
+    currentQrPreviewController = new AbortController();
+
+    try {
+        const response = await fetch('/api/preview-qr-position', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ templateId: parseInt(templateId), x, y, width, height }),
+            signal: currentQrPreviewController.signal
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const result = await response.json();
+        if (!result.success || !result.pdfBase64) throw new Error(result.error || 'Gagal generate preview');
+
+        // Sanitasi: hapus semua karakter non-base64
+        const cleanBase64 = result.pdfBase64.replace(/[^A-Za-z0-9+/=]/g, '');
+
+        // Validasi panjang harus kelipatan 4
+        if (cleanBase64.length === 0) throw new Error('Base64 kosong dari server');
+        if (cleanBase64.length % 4 !== 0) {
+            // Padding jika perlu
+            const padded = cleanBase64 + '='.repeat((4 - cleanBase64.length % 4) % 4);
+            console.warn('⚠️ Base64 di-padding dari', cleanBase64.length, 'menjadi', padded.length);
+        }
+
+        let binary;
+        try {
+            binary = atob(cleanBase64);
+        } catch (e) {
+            console.error('atob gagal, sample base64:', cleanBase64.substring(0, 50));
+            throw new Error('Base64 tidak valid: ' + e.message);
+        }
+        const bytes  = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+
+        if (currentFieldModalPreviewUrl) URL.revokeObjectURL(currentFieldModalPreviewUrl);
+        currentFieldModalPreviewUrl = URL.createObjectURL(blob);
+
+        container.innerHTML = `<iframe src="${currentFieldModalPreviewUrl}" title="Preview QR"></iframe>`;
+        console.log('✅ Field modal QR preview updated:', { x, y, width, height });
+
+    } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error('❌ Field modal QR preview error:', err.message);
+        container.innerHTML = `
+            <div class="preview-placeholder" style="color:#c00;">
+                <i class="bi bi-exclamation-triangle" style="font-size:32px;"></i>
+                <p style="font-size:13px;">Gagal: ${err.message}</p>
+                <button class="btn-preview" onclick="updateFieldModalQrPreview()" style="margin-top:8px;">
+                    <i class="bi bi-arrow-repeat"></i> Coba Lagi
+                </button>
+            </div>`;
+    } finally {
+        currentQrPreviewController = null;
+    }
+}
+
+// Debouncer handler — dipanggil tiap kali input koordinat/ukuran berubah
+function handleQrCoordinateChange() {
+    console.log('🔔 handleQrCoordinateChange dipanggil');
+    console.log('  qrContainer display:', document.getElementById('qrSignatureContainer')?.style.display);
+    
+    const qrContainer = document.getElementById('qrSignatureContainer');
+    if (!qrContainer || qrContainer.style.display !== 'block') {
+        console.log('  ⛔ Guard triggered — skip');
+        return;
+    }
+
+    if (qrCoordinateDebounceTimer) {
+        console.log('  ♻️ Timer di-reset');
+        clearTimeout(qrCoordinateDebounceTimer);
+    }
+
+    // const container = document.getElementById('fieldModalPreviewContainer');
+    // if (container && !container.innerHTML.includes('spinner')) {
+    //     container.innerHTML = `...loading...`;
+    // }
+
+    qrCoordinateDebounceTimer = setTimeout(() => {
+        console.log('⏰ 500ms habis → updateFieldModalQrPreview');
+        updateFieldModalQrPreview();
+    }, 2000);
+}
+
 async function loadFields(templateId) {
   try {
     const res = await fetch(`/api/templates/${templateId}/fields`);
@@ -1194,105 +1457,300 @@ function renderFieldsList() {
 
 // ============ FIELD MODAL ============
 async function showFieldModal() {
-  currentEditFieldId = null;
-  document.getElementById('fieldModalTitle').innerText = 'Tambah Field';
-  document.getElementById('editFieldId').value = '';
-  document.getElementById('fieldLabel').value = '';
-  
-  // Reset data source ke MANUAL
-  document.getElementById('dataSource').value = 'MANUAL';
-  document.getElementById('sourceKeyGroup').style.display = 'none';
-  document.getElementById('signatureSelectGroup').style.display = 'none';
-  
-  // Tampilkan label group (karena default MANUAL)
-  const labelGroup = document.getElementById('fieldLabel').closest('.form-group');
-  labelGroup.style.display = 'block';
-  
-  // Load placeholders dari template
-  await loadPlaceholdersFromTemplate();
-  
-  // Event listener untuk perubahan Sumber Data
-  document.getElementById('dataSource').onchange = () => {
-    const source = document.getElementById('dataSource').value;
-    const labelGroup = document.getElementById('fieldLabel').closest('.form-group');
-    
-    if (source === 'MANUAL') {
-      labelGroup.style.display = 'block';
-      document.getElementById('sourceKeyGroup').style.display = 'none';
-      document.getElementById('signatureSelectGroup').style.display = 'none';
-    } 
-    else if (source === 'AUTO_KRS' || source === 'SYSTEM') {
-      labelGroup.style.display = 'none';
-      document.getElementById('sourceKeyGroup').style.display = 'block';
-      document.getElementById('signatureSelectGroup').style.display = 'none';
-      toggleSourceKey();
-    }
-    else if (source === 'MASTER_SIGNATURE') {
-      labelGroup.style.display = 'none';
-      document.getElementById('sourceKeyGroup').style.display = 'none';
-      document.getElementById('signatureSelectGroup').style.display = 'block';
-      loadSignatureOptions();
-    }
-  };
-  
-  // Trigger manual untuk set initial state
-  document.getElementById('dataSource').onchange();
-  
-  loadSignatureOptions();
-  document.getElementById('fieldModal').style.display = 'flex';
+    // Bersihkan state QR preview
+    if (qrCoordinateDebounceTimer) { clearTimeout(qrCoordinateDebounceTimer); qrCoordinateDebounceTimer = null; }
+    if (currentQrPreviewController) { currentQrPreviewController.abort(); currentQrPreviewController = null; }
+    if (currentFieldModalPreviewUrl) { URL.revokeObjectURL(currentFieldModalPreviewUrl); currentFieldModalPreviewUrl = null; }
+
+    // Reset modal ke ukuran normal (belum QR mode)
+    document.getElementById('fieldModalContent').classList.remove('qr-mode');
+
+    currentEditFieldId = null;
+    document.getElementById('fieldModalTitle').innerText = 'Tambah Field';
+    document.getElementById('editFieldId').value = '';
+    document.getElementById('fieldLabel').value  = '';
+
+    // Reset default koordinat untuk field baru
+    document.getElementById('qrPosX').value = 460;
+    document.getElementById('qrPosY').value = 700;
+    document.getElementById('qrSize').value = 100;
+
+    // Reset radio ke image
+    const radioImage = document.querySelector('input[name="signatureTypeRadio"][value="image"]');
+    if (radioImage) radioImage.checked = true;
+
+    // Reset preview field modal
+    const fmPreview = document.getElementById('fieldModalPreviewContainer');
+    if (fmPreview) fmPreview.innerHTML = `
+        <div class="preview-placeholder">
+            <i class="bi bi-qr-code" style="font-size:40px; opacity:0.3;"></i>
+            <p style="font-size:13px;">Preview akan muncul otomatis saat mode QR aktif</p>
+        </div>`;
+
+    // Reset data source ke MANUAL
+    document.getElementById('dataSource').value = 'MANUAL';
+
+    // Load placeholders dari template
+    await loadPlaceholdersFromTemplate();
+
+    // ── onchange handler untuk dataSource ──────────────────────────
+    document.getElementById('dataSource').onchange = () => {
+        const source          = document.getElementById('dataSource').value;
+        const labelGroup      = document.getElementById('fieldLabel').closest('.form-group');
+        const sigGroup        = document.getElementById('signatureDisplayGroup');
+        const imageContainer  = document.getElementById('imageSignatureContainer');
+        const qrContainer     = document.getElementById('qrSignatureContainer');
+        const qrDosenContainer= document.getElementById('qrSignatureDosenContainer');
+        const modalContent    = document.getElementById('fieldModalContent');
+
+        // Reset semua panel
+        labelGroup.style.display = sigGroup.style.display =
+        imageContainer.style.display = qrContainer.style.display =
+        qrDosenContainer.style.display = 'none';
+        document.getElementById('sourceKeyGroup').style.display = 'none';
+        modalContent.classList.remove('qr-mode');
+
+        if (source === 'MANUAL') {
+            labelGroup.style.display = 'block';
+        }
+        else if (source === 'AUTO_KRS' || source === 'SYSTEM') {
+            document.getElementById('sourceKeyGroup').style.display = 'block';
+            toggleSourceKey();
+        }
+        else if (source === 'MASTER_SIGNATURE') {
+            sigGroup.style.display = 'block';
+            const selectedRadio = document.querySelector('input[name="signatureTypeRadio"]:checked');
+            if (selectedRadio && selectedRadio.value === 'qr') {
+                qrContainer.style.display      = 'block';
+                qrDosenContainer.style.display = 'block';
+                modalContent.classList.add('qr-mode');
+                setTimeout(() => updateFieldModalQrPreview(), 100);
+            } else {
+                imageContainer.style.display = 'block';
+                loadSignatureOptions();
+            }
+        }
+    };
+
+    // Trigger untuk set initial state
+    document.getElementById('dataSource').onchange();
+
+    // ── Event listener radio button signature type ──────────────────
+    document.querySelectorAll('input[name="signatureTypeRadio"]').forEach(radio => {
+        radio.removeEventListener('change', handleSignatureTypeChange);
+        radio.addEventListener('change', handleSignatureTypeChange);
+    });
+
+    // // ── Event listener input koordinat (debouncer) ──────────────────
+    // ['qrPosX', 'qrPosY', 'qrSize'].forEach(id => {
+    //     const el = document.getElementById(id);
+    //     if (!el) return;
+    //     el.removeEventListener('input',  handleQrCoordinateChange);
+    //     el.removeEventListener('change', handleQrCoordinateChange);
+    //     el.addEventListener('input',  handleQrCoordinateChange);
+    //     el.addEventListener('change', handleQrCoordinateChange);
+    // });
+
+    loadSignatureOptions();
+    document.getElementById('fieldModal').style.display = 'flex';
 }
+
+function handleSignatureTypeChange(e) {
+    const imageContainer        = document.getElementById('imageSignatureContainer');
+    const qrContainer           = document.getElementById('qrSignatureContainer');
+    const qrDosenContainer      = document.getElementById('qrSignatureDosenContainer');
+    const modalContent          = document.getElementById('fieldModalContent');
+
+    if (e.target.value === 'qr') {
+        imageContainer.style.display   = 'none';
+        qrDosenContainer.style.display = 'block';
+        qrContainer.style.display      = 'block';
+        modalContent.classList.add('qr-mode');
+
+        const previewContainer = document.getElementById('fieldModalPreviewContainer');
+        if (previewContainer) {
+            previewContainer.innerHTML = `
+                <div class="preview-placeholder">
+                    <div class="spinner"></div>
+                    <p style="font-size:13px;">Memuat preview...</p>
+                </div>`;
+        }
+        setTimeout(() => updateFieldModalQrPreview(), 100);
+
+    } else {
+        imageContainer.style.display   = 'block';
+        qrDosenContainer.style.display = 'none';
+        qrContainer.style.display      = 'none';
+        modalContent.classList.remove('qr-mode');
+
+        const previewContainer = document.getElementById('fieldModalPreviewContainer');
+        if (previewContainer) {
+            previewContainer.innerHTML = `
+                <div class="preview-placeholder">
+                    <i class="bi bi-qr-code" style="font-size:40px; opacity:0.3;"></i>
+                    <p style="font-size:13px;">Preview akan muncul otomatis saat mode QR aktif</p>
+                </div>`;
+        }
+        if (currentFieldModalPreviewUrl) {
+            URL.revokeObjectURL(currentFieldModalPreviewUrl);
+            currentFieldModalPreviewUrl = null;
+        }
+        if (currentQrPreviewController) {
+            currentQrPreviewController.abort();
+            currentQrPreviewController = null;
+        }
+    }
+}
+
 
 async function editField(fieldId) {
   const field = currentFields.find(f => f.id === fieldId);
   if (!field) return;
-  
+
+  // Bersihkan state QR preview
+  if (qrCoordinateDebounceTimer) { clearTimeout(qrCoordinateDebounceTimer); qrCoordinateDebounceTimer = null; }
+  if (currentQrPreviewController) { currentQrPreviewController.abort(); currentQrPreviewController = null; }
+  if (currentFieldModalPreviewUrl) { URL.revokeObjectURL(currentFieldModalPreviewUrl); currentFieldModalPreviewUrl = null; }
+
   currentEditFieldId = fieldId;
   document.getElementById('fieldModalTitle').innerText = 'Edit Field';
   document.getElementById('editFieldId').value = field.id;
-  document.getElementById('fieldLabel').value = field.label || '';
-  
+  document.getElementById('fieldLabel').value  = field.label || '';
+
+  const modalContent = document.getElementById('fieldModalContent');
+  const labelGroup   = document.getElementById('fieldLabel').closest('.form-group');
+
   let dataSourceValue = field.data_source || 'MANUAL';
   document.getElementById('dataSource').value = dataSourceValue;
-  
-  const labelGroup = document.getElementById('fieldLabel').closest('.form-group');
-  
+
+  // Reset semua panel dulu
+  labelGroup.style.display = 'none';
+  document.getElementById('sourceKeyGroup').style.display           = 'none';
+  document.getElementById('signatureDisplayGroup').style.display    = 'none';
+  document.getElementById('imageSignatureContainer').style.display  = 'none';
+  document.getElementById('qrSignatureContainer').style.display     = 'none';
+  document.getElementById('qrSignatureDosenContainer').style.display = 'none';
+  modalContent.classList.remove('qr-mode');
+
+  // Reset preview field modal
+  const fmPreview = document.getElementById('fieldModalPreviewContainer');
+  if (fmPreview) fmPreview.innerHTML = `
+      <div class="preview-placeholder">
+          <i class="bi bi-qr-code" style="font-size:40px; opacity:0.3;"></i>
+          <p style="font-size:13px;">Preview akan muncul otomatis saat mode QR aktif</p>
+      </div>`;
+
   if (dataSourceValue === 'MANUAL') {
     labelGroup.style.display = 'block';
-  } else {
-    labelGroup.style.display = 'none';
   }
-  
-  if (dataSourceValue === 'AUTO_KRS' || dataSourceValue === 'SYSTEM') {
+  else if (dataSourceValue === 'AUTO_KRS' || dataSourceValue === 'SYSTEM') {
     document.getElementById('sourceKeyGroup').style.display = 'block';
-    document.getElementById('signatureSelectGroup').style.display = 'none';
     toggleSourceKey(field.source_key);
   }
   else if (dataSourceValue === 'MASTER_SIGNATURE') {
-    document.getElementById('sourceKeyGroup').style.display = 'none';
-    document.getElementById('signatureSelectGroup').style.display = 'block';
+    document.getElementById('signatureDisplayGroup').style.display = 'block';
     await loadSignatureOptions();
-    if (field.source_key) {
-      document.getElementById('signatureSelect').value = field.source_key;
+
+    // Isi koordinat (untuk QR) — ukuran pakai nilai terbesar dari width/height tersimpan (keduanya harusnya sama)
+    document.getElementById('qrPosX').value = field.pos_x  ?? 460;
+    document.getElementById('qrPosY').value = field.pos_y  ?? 700;
+    document.getElementById('qrSize').value = field.width  ?? field.height ?? 100;
+
+    const radioValue   = field.display_type === 'qr' ? 'qr' : 'image';
+    const radioToCheck = document.querySelector(`input[name="signatureTypeRadio"][value="${radioValue}"]`);
+    if (radioToCheck) radioToCheck.checked = true;
+
+    if (radioValue === 'qr') {
+        document.getElementById('qrSignatureContainer').style.display        = 'block';
+        document.getElementById('qrSignatureDosenContainer').style.display   = 'block';
+        document.getElementById('imageSignatureContainer').style.display      = 'none';
+        modalContent.classList.add('qr-mode');
+        if (field.source_key) document.getElementById('signatureSelectQr').value = field.source_key;
+        setTimeout(() => updateFieldModalQrPreview(), 150);
+    } else {
+        document.getElementById('imageSignatureContainer').style.display      = 'block';
+        document.getElementById('qrSignatureContainer').style.display         = 'none';
+        document.getElementById('qrSignatureDosenContainer').style.display    = 'none';
+        if (field.source_key) document.getElementById('signatureSelect').value = field.source_key;
     }
   }
-  else {
+
+  // Register event listeners (sama seperti showFieldModal)
+  document.getElementById('dataSource').onchange = () => {
+    const src          = document.getElementById('dataSource').value;
+    const lGroup       = document.getElementById('fieldLabel').closest('.form-group');
+    const sigGroup     = document.getElementById('signatureDisplayGroup');
+    const imgContainer = document.getElementById('imageSignatureContainer');
+    const qrCont       = document.getElementById('qrSignatureContainer');
+    const qrDosenCont  = document.getElementById('qrSignatureDosenContainer');
+    const mc           = document.getElementById('fieldModalContent');
+
+    lGroup.style.display = sigGroup.style.display = imgContainer.style.display =
+    qrCont.style.display = qrDosenCont.style.display = 'none';
     document.getElementById('sourceKeyGroup').style.display = 'none';
-    document.getElementById('signatureSelectGroup').style.display = 'none';
-  }
-  
+    mc.classList.remove('qr-mode');
+
+    if (src === 'MANUAL') { lGroup.style.display = 'block'; }
+    else if (src === 'AUTO_KRS' || src === 'SYSTEM') {
+        document.getElementById('sourceKeyGroup').style.display = 'block';
+        toggleSourceKey();
+    }
+    else if (src === 'MASTER_SIGNATURE') {
+        sigGroup.style.display = 'block';
+        const sel = document.querySelector('input[name="signatureTypeRadio"]:checked');
+        if (sel && sel.value === 'qr') {
+            qrCont.style.display      = 'block';
+            qrDosenCont.style.display = 'block';
+            mc.classList.add('qr-mode');
+            setTimeout(() => updateFieldModalQrPreview(), 100);
+        } else {
+            imgContainer.style.display = 'block';
+            loadSignatureOptions();
+        }
+    }
+  };
+
+  document.querySelectorAll('input[name="signatureTypeRadio"]').forEach(radio => {
+    radio.removeEventListener('change', handleSignatureTypeChange);
+    radio.addEventListener('change', handleSignatureTypeChange);
+  });
+
+  // ['qrPosX', 'qrPosY', 'qrSize'].forEach(id => {
+  //   const el = document.getElementById(id);
+  //   if (!el) return;
+  //   el.removeEventListener('input',  handleQrCoordinateChange);
+  //   el.removeEventListener('change', handleQrCoordinateChange);
+  //   el.addEventListener('input',  handleQrCoordinateChange);
+  //   el.addEventListener('change', handleQrCoordinateChange);
+  // });
+
+  // Load placeholder list
+  await loadPlaceholdersFromTemplate();
   const fieldNameSelect = document.getElementById('fieldName');
-  for(let i = 0; i < fieldNameSelect.options.length; i++) {
-    if(fieldNameSelect.options[i].value === field.field_name) {
+  for (let i = 0; i < fieldNameSelect.options.length; i++) {
+    if (fieldNameSelect.options[i].value === field.field_name) {
       fieldNameSelect.selectedIndex = i;
       break;
     }
   }
-  
+
   document.getElementById('fieldModal').style.display = 'flex';
 }
 
 function closeFieldModal() {
-  document.getElementById('fieldModal').style.display = 'none';
+    // Bersihkan timer debouncer
+    if (qrCoordinateDebounceTimer) { clearTimeout(qrCoordinateDebounceTimer); qrCoordinateDebounceTimer = null; }
+
+    // Batalkan request preview yang sedang berjalan
+    if (currentQrPreviewController) { currentQrPreviewController.abort(); currentQrPreviewController = null; }
+
+    // Bebaskan URL blob preview field modal
+    if (currentFieldModalPreviewUrl) { URL.revokeObjectURL(currentFieldModalPreviewUrl); currentFieldModalPreviewUrl = null; }
+
+    // Kembalikan modal ke ukuran normal
+    document.getElementById('fieldModalContent').classList.remove('qr-mode');
+
+    document.getElementById('fieldModal').style.display = 'none';
 }
 
 async function deleteField(fieldId) {
@@ -1357,13 +1815,21 @@ async function saveField() {
     return;
   }
   
+  // Ambil nilai dari radio button signature type
+  const selectedRadio = document.querySelector('input[name="signatureTypeRadio"]:checked');
+  const displayType = selectedRadio ? selectedRadio.value : 'image';
+
   if (dataSource === 'MASTER_SIGNATURE') {
-    const signatureId = document.getElementById('signatureSelect').value;
-    if (!signatureId) {
-      alert('Pilih tanda tangan terlebih dahulu');
-      return;
+    if (displayType === 'image') {
+      const signatureId = document.getElementById('signatureSelect').value;
+      if (!signatureId) { alert('Pilih tanda tangan dosen terlebih dahulu'); return; }
+      sourceKey = signatureId;
+    } else {
+      // QR mode — tetap butuh pilih dosen, QR akan mewakili TTD dosen tsb
+      const signatureId = document.getElementById('signatureSelectQr').value;
+      if (!signatureId) { alert('Pilih tanda tangan dosen terlebih dahulu'); return; }
+      sourceKey = signatureId;
     }
-    sourceKey = signatureId;
   }
   
   // Cek duplikasi field_name (abaikan jika edit field yang sama)
@@ -1381,6 +1847,14 @@ async function saveField() {
     source_key: sourceKey || null,
     field_order: null
   };
+
+  // Ambil nilai koordinat (selalu kirim, meskipun untuk image)
+  fieldData.display_type = displayType;
+  fieldData.pos_x = parseInt(document.getElementById('qrPosX').value) || 460;
+  fieldData.pos_y = parseInt(document.getElementById('qrPosY').value) || 700;
+  const qrSizeVal = parseInt(document.getElementById('qrSize').value) || 100;
+  fieldData.width  = qrSizeVal;   // width = height (1:1 ratio)
+  fieldData.height = qrSizeVal;
   
   try {
     let res;
@@ -1489,15 +1963,16 @@ async function loadSignatureOptions() {
   try {
     const response = await fetch('/api/signatures');
     const signatures = await response.json();
-    const select = document.getElementById('signatureSelect');
-    if (!select) return;
-    select.innerHTML = '<option value="">-- Pilih Tanda Tangan --</option>';
     const activeSignatures = signatures.filter(s => s.is_active === 1);
-    activeSignatures.forEach(sig => {
-      const option = document.createElement('option');
-      option.value = sig.id;
-      option.textContent = `${sig.nama_dosen} (${sig.jabatan})`;
-      select.appendChild(option);
+    const optionsHtml = '<option value="">-- Pilih Tanda Tangan --</option>' +
+      activeSignatures.map(sig =>
+        `<option value="${sig.id}">${escapeHtml(sig.nama_dosen)} (${escapeHtml(sig.jabatan)})</option>`
+      ).join('');
+
+    // Isi kedua dropdown (image mode dan QR mode)
+    ['signatureSelect', 'signatureSelectQr'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = optionsHtml;
     });
   } catch (error) {
     console.error('Load signatures error:', error);
@@ -1616,7 +2091,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('logoutBtn').addEventListener('click', logout);
   document.getElementById('createTemplateBtn').addEventListener('click', showCreateTemplateModal);
   document.getElementById('dataSource').addEventListener('change', () => toggleSourceKey());
-  
+
+  // ✅ TAMBAHKAN INI — cukup satu kali, hanya 'input', tidak perlu remove karena tidak pernah ditambah ulang
+  ['qrPosX', 'qrPosY', 'qrSize'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', handleQrCoordinateChange);
+  });
+
   window.onclick = function(e) {
     if (e.target === document.getElementById('createTemplateModal')) closeCreateTemplateModal();
     if (e.target === document.getElementById('editTemplateModal')) closeEditTemplateModal();

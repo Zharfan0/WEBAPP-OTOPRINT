@@ -15,12 +15,23 @@ const { convertDocxToPdf, generateEmptyPreview, generatePdfWithLayout } = requir
 
 const app = express();
 const PORT = 3000;
+const frontendPath = path.join(__dirname, '..', 'frontend');
+console.log('Frontend path:', frontendPath);
 
-// Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Middleware untuk cek session
+// Session middleware harus dipasang SEBELUM static files dan route handlers
+app.use(session({
+    secret: 'otoprint-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 30 * 60 * 1000 }
+}));
+
+app.use(express.static(frontendPath));
+app.use(express.static(__dirname));
+
 app.get('/', (req, res) => {
     if (req.session.user) {
         if (req.session.user.role === 'admin') {
@@ -31,20 +42,6 @@ app.get('/', (req, res) => {
     }
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
-
-// Static files
-const frontendPath = path.join(__dirname, '..', 'frontend');
-console.log('Frontend path:', frontendPath);
-app.use(express.static(frontendPath));
-app.use(express.static(__dirname));
-
-// Session
-app.use(session({
-    secret: 'otoprint-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 30 * 60 * 1000 }
-}));
 
 // Database
 const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'));
@@ -413,14 +410,29 @@ app.post('/api/fields', (req, res) => {
     if (!req.session.user || req.session.user.role !== 'admin') {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    const { template_id, field_name, label, field_type, data_source, source_key, field_order } = req.body;
-    db.run(`INSERT INTO fields (template_id, field_name, label, field_type, data_source, source_key, field_order) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [template_id, field_name, label, field_type, data_source, source_key, field_order || 0],
+    
+    const { 
+        template_id, field_name, label, field_type, data_source, 
+        source_key, field_order, display_type, pos_x, pos_y, width, height 
+    } = req.body;
+    
+    db.run(`INSERT INTO fields (
+        template_id, field_name, label, field_type, data_source, 
+        source_key, field_order, display_type, pos_x, pos_y, width, height
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+            template_id, field_name, label, field_type, data_source, 
+            source_key, field_order || 0, display_type || 'image', 
+            pos_x || 600, pos_y || 700, width || 100, height || 100
+        ],
         function(err) {
-            if (err) return res.status(500).json({ error: err.message });
+            if (err) {
+                console.error('Create field error:', err.message);
+                return res.status(500).json({ error: err.message });
+            }
             res.json({ success: true, id: this.lastID });
-        });
+        }
+    );
 });
 
 // Update field
@@ -428,13 +440,31 @@ app.put('/api/fields/:id', (req, res) => {
     if (!req.session.user || req.session.user.role !== 'admin') {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    const { field_name, label, field_type, data_source, source_key, field_order } = req.body;
-    db.run(`UPDATE fields SET field_name = ?, label = ?, field_type = ?, data_source = ?, source_key = ?, field_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-        [field_name, label, field_type, data_source, source_key, field_order, req.params.id],
+    
+    const { 
+        field_name, label, field_type, data_source, source_key, 
+        field_order, display_type, pos_x, pos_y, width, height 
+    } = req.body;
+    
+    db.run(`UPDATE fields SET 
+        field_name = ?, label = ?, field_type = ?, data_source = ?, 
+        source_key = ?, field_order = ?, display_type = ?, 
+        pos_x = ?, pos_y = ?, width = ?, height = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?`,
+        [
+            field_name, label, field_type, data_source, source_key, 
+            field_order, display_type || 'image', 
+            pos_x || 600, pos_y || 700, width || 100, height || 100, 
+            req.params.id
+        ],
         function(err) {
-            if (err) return res.status(500).json({ error: err.message });
+            if (err) {
+                console.error('Update field error:', err.message);
+                return res.status(500).json({ error: err.message });
+            }
             res.json({ success: true });
-        });
+        }
+    );
 });
 
 // Delete field
@@ -927,34 +957,78 @@ app.post('/api/print-to-printer', async (req, res) => {
         
         // Generate UUID unik untuk dokumen
         const docUuid = generateDocUuid();
-        
+
         // Buat URL verifikasi
         const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const verifyUrl = `${baseUrl}/verify.html?doc=${docUuid}`;
+        const verifyUrl = `${req.protocol}://${req.get('host')}/verify-signature.html?doc=${docUuid}`;
         
         console.log('🔐 QR Verifikasi URL:', verifyUrl);
         
+        // Helper function untuk overlay QR ke PDF dengan koordinat dari DB
+        async function addVerificationQrToPdf(pdfBuffer, verifyUrl) {
+            const { PDFDocument } = require('pdf-lib');
+            const QRCode = require('qrcode');
+            
+            const pdfDoc = await PDFDocument.load(pdfBuffer);
+            const pages = pdfDoc.getPages();
+            const firstPage = pages[0];
+            const pageHeight = firstPage.getHeight();
+
+            // Ambil field QR signature dari signatureFields yang sudah di-query di atas
+            const qrField = signatureFields.find(f => f.display_type === 'qr');
+
+            // Gunakan koordinat dari DB jika ada, fallback ke default pojok kanan bawah
+            const qrSize   = qrField?.width  ?? qrField?.height ?? 100;
+            const posX     = qrField?.pos_x  ?? (firstPage.getWidth() - qrSize - 20);
+            const posY     = qrField?.pos_y  ?? 20;
+
+            // Generate QR code dengan ukuran dari DB
+            const qrBuffer = await QRCode.toBuffer(verifyUrl, {
+                width: qrSize,
+                margin: 1,
+                errorCorrectionLevel: 'M'
+            });
+            const qrImage = await pdfDoc.embedPng(qrBuffer);
+
+            // Konversi koordinat: sistem kita top-left, pdf-lib bottom-left
+            const pdfX = posX;
+            const pdfY = pageHeight - posY - qrSize;
+
+            console.log(`🔐 QR overlay: x=${pdfX}, y=${pdfY}, size=${qrSize} (dari DB: pos_x=${posX}, pos_y=${posY})`);
+
+            firstPage.drawImage(qrImage, {
+                x: pdfX,
+                y: pdfY,
+                width: qrSize,
+                height: qrSize
+            });
+            
+            return await pdfDoc.save();
+        }
+
         // Overlay QR ke PDF
         pdfWithQrBuffer = await addVerificationQrToPdf(pdfBuffer, verifyUrl);
         
         // Simpan data verifikasi ke database
         const user = req.session.user;
-        
-        // Ambil nama dokumen dari template
         const templateName = template.name_id || 'Dokumen';
-        
+
+        // Ambil source_key dosen dari qrField agar verify bisa tampilkan info dosen
+        const qrField = signatureFields.find(f => f.display_type === 'qr');
+        const signatureIdForVerify = qrField?.source_key || null;
+
         db.run(`
             INSERT INTO document_verifications 
             (doc_uuid, template_id, user_id, user_name, user_nim, document_name, metadata, status) 
             VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
         `, [
-            docUuid, 
-            templateId, 
-            user.id, 
-            user.name || user.nim, 
-            user.nim || '-', 
+            docUuid,
+            templateId,
+            user.id,
+            user.name || user.nim,
+            user.nim || '-',
             templateName,
-            JSON.stringify(allData)
+            JSON.stringify({ signature_id: signatureIdForVerify, ...allData })
         ], (err) => {
             if (err) {
                 console.error('❌ Gagal simpan verifikasi:', err.message);
@@ -1254,8 +1328,8 @@ app.post('/api/convert-docx-to-pdf', async (req, res) => {
         
         // Baca PDF dan kirim sebagai base64
         const pdfBuffer = fs.readFileSync(tempPdfPath);
-        const pdfBase64 = pdfBuffer.toString('base64');
         
+        const pdfBase64 = pdfBuffer.toString('base64');  // ✅ tambahkan baris ini
         res.json({ success: true, pdfBase64: pdfBase64 });
         
     } catch (error) {
@@ -1271,6 +1345,145 @@ app.post('/api/convert-docx-to-pdf', async (req, res) => {
     }
 });
 
+// ============ PREVIEW QR POSITION (UNTUK KALIBRASI ADMIN) ============
+app.post('/api/preview-qr-position', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { templateId, x, y, width, height } = req.body;
+
+    if (!templateId) {
+        return res.status(400).json({ error: 'templateId wajib diisi' });
+    }
+
+    // Validasi koordinat dan ukuran
+    const posX = typeof x === 'number' ? x : 400;
+    const posY = typeof y === 'number' ? y : 500;
+    const qrWidth = typeof width === 'number' ? width : 100;
+    const qrHeight = typeof height === 'number' ? height : 100;
+
+    let tempPdfPath = null;
+    let finalDocxPath = null;
+
+    try {
+        // 1. Ambil template dari database
+        const template = await new Promise((resolve, reject) => {
+            db.get(`SELECT * FROM templates WHERE id = ?`, [templateId], (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
+        });
+
+        if (!template?.file_path) {
+            throw new Error('Template tidak ditemukan');
+        }
+
+        const templatePath = path.join(__dirname, '../frontend', template.file_path);
+        if (!fs.existsSync(templatePath)) {
+            throw new Error(`File template tidak ada: ${templatePath}`);
+        }
+
+        // 2. Konversi DOCX ke PDF (tanpa injection data)
+        finalDocxPath = path.join(os.tmpdir(), `preview_calibrate_${Date.now()}.docx`);
+        tempPdfPath = path.join(os.tmpdir(), `preview_calibrate_${Date.now()}.pdf`);
+
+        // Copy template asli ke file sementara (tidak perlu injection)
+        fs.copyFileSync(templatePath, finalDocxPath);
+
+        // 3. Konversi DOCX ke PDF via LibreOffice
+        const libreOfficePath = 'D:\\LibreOffice\\program\\soffice.exe';
+        if (!fs.existsSync(libreOfficePath)) {
+            throw new Error('LibreOffice tidak ditemukan');
+        }
+
+        const outDir = path.dirname(tempPdfPath);
+        await new Promise((resolve, reject) => {
+            const cmd = `"${libreOfficePath}" --headless --convert-to pdf --outdir "${outDir}" "${finalDocxPath}"`;
+            console.log('▶️ Preview calibrate:', cmd);
+            exec(cmd, { timeout: 30000 }, (error, stdout, stderr) => {
+                if (error) {
+                    reject(new Error('Konversi PDF gagal: ' + (stderr || error.message)));
+                } else {
+                    resolve();
+                }
+            });
+        });
+
+        const generatedPdf = finalDocxPath.replace(/\.docx$/i, '.pdf');
+        if (!fs.existsSync(generatedPdf)) {
+            throw new Error('PDF tidak terbuat setelah konversi');
+        }
+        fs.renameSync(generatedPdf, tempPdfPath);
+
+        // 4. Load PDF dan overlay kotak dummy di posisi yang diminta
+        const pdfBuffer = fs.readFileSync(tempPdfPath);
+        const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+        
+        const pdfDoc = await PDFDocument.load(pdfBuffer);
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        const pageHeight = firstPage.getHeight();
+
+        // Koordinat: (x, y) dihitung dari TOP-LEFT, konversi ke pdf-lib (bottom-left)
+        const pdfX = posX;
+        const pdfY = pageHeight - posY - qrHeight;
+
+        // Gambar kotak merah dengan border putus-putus (opsional, pakai solid dulu)
+        firstPage.drawRectangle({
+            x: pdfX,
+            y: pdfY,
+            width: qrWidth,
+            height: qrHeight,
+            borderColor: rgb(1, 0, 0),      // merah
+            borderWidth: 2,
+            color: rgb(1, 0.8, 0.8),        // background merah muda transparan
+            opacity: 0.3
+        });
+
+        // Tambahkan teks kecil "QR POSITION" di tengah kotak
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const text = "QR";
+        const textWidth = font.widthOfTextAtSize(text, 12);
+        firstPage.drawText(text, {
+            x: pdfX + (qrWidth / 2) - (textWidth / 2),
+            y: pdfY + (qrHeight / 2) - 6,
+            size: 12,
+            font: font,
+            color: rgb(1, 0, 0)
+        });
+
+        // 5. Simpan PDF final dengan overlay
+        const finalPdfBuffer = await pdfDoc.save();
+
+        // Pastikan buffer valid sebelum encode
+        const safeBuffer = Buffer.isBuffer(finalPdfBuffer) ? finalPdfBuffer : Buffer.from(finalPdfBuffer);
+        const rawBase64 = safeBuffer.toString('base64');
+
+        // Hapus semua karakter yang tidak valid untuk base64 (hanya izinkan A-Z a-z 0-9 + / =)
+        const cleanBase64 = rawBase64.replace(/[^A-Za-z0-9+/=]/g, '');
+
+        console.log('✅ preview-qr-position base64 length:', cleanBase64.length, '| valid chars only');
+        res.json({ success: true, pdfBase64: cleanBase64 });
+
+    } catch (error) {
+        console.error('❌ Preview QR position error:', error.message);
+        res.status(500).json({ error: error.message });
+    } finally {
+        // Bersihkan file temporary
+        for (const p of [tempPdfPath, finalDocxPath]) {
+            if (p && fs.existsSync(p)) {
+                try { fs.unlinkSync(p); } catch (_) {}
+            }
+        }
+        // Hapus juga file PDF hasil konversi jika berbeda
+        const autoPdf = finalDocxPath?.replace(/\.docx$/i, '.pdf');
+        if (autoPdf && fs.existsSync(autoPdf)) {
+            try { fs.unlinkSync(autoPdf); } catch (_) {}
+        }
+    }
+});
+
 // ============ GENERATE PDF (UNTUK PREVIEW) ============
 
 app.post('/api/generate-pdf', async (req, res) => {
@@ -1281,11 +1494,11 @@ app.post('/api/generate-pdf', async (req, res) => {
     const { templateId, allData } = req.body;
 
     if (!templateId) {
-        return res.status(400).json({ error: 'Template ID required' });
+        return res.status(400). json({ error: 'Template ID required' });
     }
 
     let tempDocxPath = null;
-    let tempPdfPath   = null;
+    let tempPdfPath = null;
     let finalDocxPath = null;
 
     try {
@@ -1303,26 +1516,28 @@ app.post('/api/generate-pdf', async (req, res) => {
             throw new Error(`File template tidak ada: ${templatePath}`);
         }
 
-        // Untuk menentukan Semester Ganjil/Genap
+        // ── 2. Helper functions ─────────────────────────────────────────
         function getCurrentSemester() {
             const month = new Date().getMonth() + 1;
-            if ((month >= 8 && month <= 12) || month === 1) {
-                return 'Ganjil';
-            }
+            if ((month >= 8 && month <= 12) || month === 1) return 'Ganjil';
             return 'Genap';
         }
 
-        // Di dalam endpoint generate-pdf atau print-to-printer
+        function generateDocUuid() {
+            const timestamp = Date.now().toString(36);
+            const random = Math.random().toString(36).substring(2, 8);
+            return `OTP-${timestamp}-${random}`.toUpperCase();
+        }
+
+        // ── 3. System Data ──────────────────────────────────────────────
         const now = new Date();
         const year = now.getFullYear();
         const month = now.getMonth() + 1;
 
-        // Format tanggal Indonesia
         const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
                         'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
         const formattedDate = `${now.getDate()} ${months[now.getMonth()]} ${year}`;
 
-        // Tahun akademik
         let tahunAkademik;
         if (month >= 7) {
             tahunAkademik = `${year}/${year + 1}`;
@@ -1330,7 +1545,6 @@ app.post('/api/generate-pdf', async (req, res) => {
             tahunAkademik = `${year - 1}/${year}`;
         }
 
-        // Semester
         let semester;
         if ((month >= 8 && month <= 12) || month === 1) {
             semester = 'Ganjil';
@@ -1347,7 +1561,22 @@ app.post('/api/generate-pdf', async (req, res) => {
             semester: semester
         };
 
-        // ── 2. Ambil field MASTER_SIGNATURE dari DB ────────────────────
+        // ── 4. Ambil semua field template ───────────────────────────────
+        const fields = await new Promise((resolve, reject) => {
+            db.all(`SELECT * FROM fields WHERE template_id = ?`, [templateId], (err, rows) => {
+                if (err) reject(err); else resolve(rows || []);
+            });
+        });
+
+        // Update allData dengan SYSTEM data
+        for (const field of fields) {
+            if (field.data_source === 'SYSTEM') {
+                const sourceKey = field.source_key || field.field_name;
+                allData[field.field_name] = systemData[sourceKey] || '';
+            }
+        }
+
+        // ── 5. Ambil field MASTER_SIGNATURE ─────────────────────────────
         const signatureFields = await new Promise((resolve, reject) => {
             db.all(
                 `SELECT * FROM fields WHERE template_id = ? AND data_source = 'MASTER_SIGNATURE'`,
@@ -1356,9 +1585,18 @@ app.post('/api/generate-pdf', async (req, res) => {
             );
         });
 
-        // ── 3. Load path gambar signature ─────────────────────────────
+        console.log('📋 Signature fields detail:');
+        signatureFields.forEach(f => {
+            console.log(`   ID: ${f.id}, Name: ${f.field_name}, display_type: ${f.display_type || 'image (default)'}`);
+        });
+
+        // ── 6. Pisahkan: image signature vs qr signature ─────────────────
+        const imageSignatureFields = signatureFields.filter(f => !f.display_type || f.display_type === 'image');
+        const qrSignatureFields = signatureFields.filter(f => f.display_type === 'qr');
+
+        // ── 7. Load path gambar signature (hanya untuk image) ────────────
         const signatureImages = {};
-        for (const field of signatureFields) {
+        for (const field of imageSignatureFields) {
             const sig = await new Promise((resolve, reject) => {
                 db.get(
                     `SELECT signature_image FROM master_signature WHERE id = ?`,
@@ -1371,61 +1609,49 @@ app.post('/api/generate-pdf', async (req, res) => {
                 const imgPath = path.join(__dirname, '../frontend', sig.signature_image);
                 if (fs.existsSync(imgPath)) {
                     signatureImages[field.field_name] = imgPath;
-                    console.log(`✅ Signature loaded: ${field.field_name} → ${imgPath}`);
-                } else {
-                    console.warn(`⚠️  File gambar tidak ada: ${imgPath}`);
+                    console.log(`✅ Signature image: ${field.field_name} → ${imgPath}`);
                 }
             }
         }
 
-        // ── 4. Siapkan renderData ──────────────────────────────────────
-        // allData berisi semua nilai teks dari frontend
-        // Tambahkan key signature agar docxtemplater mengenali {%ttd}
+        // ── 8. Siapkan renderData untuk image signature ─────────────────
         const renderData = { ...allData };
         for (const key of Object.keys(signatureImages)) {
-            renderData[key] = key; // nilai dummy — getImage pakai tagName, bukan tagValue
+            renderData[key] = key;
         }
 
-        console.log('📦 renderData keys:', Object.keys(renderData));
-        console.log('🖼️  signatureImages:', Object.keys(signatureImages));
-
-        // ── 5. Inject teks + gambar ke DOCX via docxtemplater ─────────
+        // ── 9. Inject teks + gambar signature ke DOCX ───────────────────
         const { injectSignaturesToDocx } = require('./signatureInjector');
 
-        tempDocxPath  = path.join(os.tmpdir(), `temp_${Date.now()}.docx`);
-        tempPdfPath   = path.join(os.tmpdir(), `pdf_${Date.now()}.pdf`);
+        tempDocxPath = path.join(os.tmpdir(), `temp_${Date.now()}.docx`);
+        tempPdfPath = path.join(os.tmpdir(), `pdf_${Date.now()}.pdf`);
         finalDocxPath = path.join(os.tmpdir(), `final_${Date.now()}.docx`);
 
         try {
             const injectedBuffer = await injectSignaturesToDocx(
-                templatePath,   // langsung dari template asli, bukan copy
+                templatePath,
                 renderData,
                 signatureImages
             );
             fs.writeFileSync(finalDocxPath, injectedBuffer);
-            console.log('✅ Injection berhasil, buffer size:', injectedBuffer.length);
+            console.log('✅ Injection berhasil');
         } catch (injectError) {
             console.error('❌ Injection gagal:', injectError.message);
-            // Fallback: pakai template asli tanpa signature
             fs.copyFileSync(templatePath, finalDocxPath);
         }
 
-        // ── 6. Konversi DOCX → PDF via LibreOffice ────────────────────
+        // ── 10. Konversi DOCX → PDF via LibreOffice ─────────────────────
         const libreOfficePath = 'D:\\LibreOffice\\program\\soffice.exe';
-
         if (!fs.existsSync(libreOfficePath)) {
             throw new Error(`LibreOffice tidak ditemukan di: ${libreOfficePath}`);
         }
 
         const outDir = path.dirname(tempPdfPath);
-
         await new Promise((resolve, reject) => {
             const cmd = `"${libreOfficePath}" --headless --convert-to pdf --outdir "${outDir}" "${finalDocxPath}"`;
-            console.log('▶️  Running:', cmd);
-
+            console.log('▶️ Running:', cmd);
             exec(cmd, { timeout: 30000 }, (error, stdout, stderr) => {
                 if (error) {
-                    console.error('LibreOffice error:', stderr || error.message);
                     reject(new Error('Konversi PDF gagal: ' + (stderr || error.message)));
                 } else {
                     console.log('✅ LibreOffice selesai');
@@ -1434,21 +1660,84 @@ app.post('/api/generate-pdf', async (req, res) => {
             });
         });
 
-        // LibreOffice output: nama file sama dengan input, extension .pdf
         const generatedPdf = finalDocxPath.replace(/\.docx$/i, '.pdf');
-
         if (!fs.existsSync(generatedPdf)) {
             throw new Error(`PDF tidak terbuat. Cek LibreOffice. Path: ${generatedPdf}`);
         }
-
         fs.renameSync(generatedPdf, tempPdfPath);
         console.log('📄 PDF siap:', tempPdfPath);
 
-        // ── 7. Kirim PDF sebagai base64 ───────────────────────────────
-        const pdfBuffer = fs.readFileSync(tempPdfPath);
+        // ── 11. Load PDF untuk overlay QR signature ─────────────────────
+        let finalPdfBuffer = fs.readFileSync(tempPdfPath); // initial buffer
+
+        // Hanya proses overlay jika ada QR signature fields
+        if (qrSignatureFields.length > 0) {
+            const { PDFDocument } = require('pdf-lib');
+            const QRCode = require('qrcode');
+            
+            const pdfDoc = await PDFDocument.load(finalPdfBuffer);
+            const pages = pdfDoc.getPages();
+            const firstPage = pages[0];
+
+            for (const field of qrSignatureFields) {
+                // QR signature mewakili TTD dosen (source_key = id dosen di master_signature)
+                const docUuid  = generateDocUuid();
+                const verifyUrl = `${req.protocol}://${req.get('host')}/verify-signature.html?doc=${docUuid}`;
+
+                // Simpan ke document_verifications — sertakan signature_id agar halaman verifikasi bisa tampilkan info dosen
+                db.run(`INSERT OR IGNORE INTO document_verifications 
+                        (doc_uuid, template_id, user_id, user_name, user_nim, document_name, metadata, status) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, 'active')`,
+                    [docUuid, templateId,
+                     req.session.user.id,
+                     req.session.user.name || req.session.user.nim,
+                     req.session.user.nim || '-',
+                     template.name_id,
+                     JSON.stringify({ signature_id: field.source_key || null, ...allData })],
+                    (err) => { if (err) console.warn('⚠️ Simpan verifikasi gagal:', err.message); }
+                );
+
+                // Generate QR image
+                const qrSize   = field.width || field.height || 100;
+                const qrBuffer = await QRCode.toBuffer(verifyUrl, {
+                    width: qrSize,
+                    margin: 1,
+                    errorCorrectionLevel: 'M'
+                });
+                const qrImage = await pdfDoc.embedPng(qrBuffer);
+
+                // Posisi QR — konversi dari top-left (sistem admin) ke bottom-left (pdf-lib)
+                const posX    = field.pos_x || 460;
+                const posY    = field.pos_y || 700;
+                const pdfY    = firstPage.getHeight() - posY - qrSize;
+
+                firstPage.drawImage(qrImage, {
+                    x: posX,
+                    y: pdfY,
+                    width: qrSize,
+                    height: qrSize
+                });
+
+                console.log(`✅ QR preview overlay: field=${field.field_name}, x=${posX}, pdfY=${pdfY}, size=${qrSize}`);
+                console.log(`🔗 Verify URL: ${verifyUrl}`);
+            }
+
+            // Simpan PDF dengan QR
+            finalPdfBuffer = await pdfDoc.save();
+            console.log(`✅ PDF dengan QR berhasil dibuat, size: ${finalPdfBuffer.length} bytes`);
+        } else {
+            console.log('ℹ️ Tidak ada QR signature fields, PDF tetap asli.');
+        }
+
+                // ── 12. Kirim PDF base64 ke frontend ────────────────────────────
+        // Pastikan finalPdfBuffer adalah Buffer
+        let pdfBuffer = finalPdfBuffer;
+        if (!Buffer.isBuffer(pdfBuffer)) {
+            pdfBuffer = Buffer.from(pdfBuffer);
+        }
         const pdfBase64 = pdfBuffer.toString('base64');
 
-        console.log('📤 Mengirim PDF, size:', pdfBuffer.length, 'bytes');
+        console.log('✅ Base64 valid, length:', pdfBase64.length);
         res.json({ success: true, pdfBase64 });
 
     } catch (error) {
@@ -1456,13 +1745,58 @@ app.post('/api/generate-pdf', async (req, res) => {
         res.status(500).json({ error: error.message });
 
     } finally {
-        // Bersihkan semua file temp
         for (const p of [tempDocxPath, tempPdfPath, finalDocxPath]) {
             if (p && fs.existsSync(p)) {
                 try { fs.unlinkSync(p); } catch (_) {}
             }
         }
     }
+});
+
+// ============ VERIFIKASI SIGNATURE (QR TTD) ============
+app.get('/api/verify-signature', (req, res) => {
+    const { doc } = req.query;
+
+    if (!doc) {
+        return res.json({ valid: false, message: 'Parameter doc tidak ditemukan' });
+    }
+
+    db.get(`SELECT * FROM document_verifications WHERE doc_uuid = ?`, [doc], (err, docData) => {
+        if (err || !docData) {
+            return res.json({ valid: false, message: 'Dokumen tidak ditemukan dalam sistem' });
+        }
+
+        if (docData.status !== 'active') {
+            return res.json({ valid: false, message: 'Dokumen ini telah dicabut status keabsahannya' });
+        }
+
+        let metadata = {};
+        try { metadata = JSON.parse(docData.metadata || '{}'); } catch(e) {}
+
+        const signatureId = metadata.signature_id || req.query.sig || null;
+
+        const buildResponse = (sigData) => res.json({
+            valid: true,
+            doc_uuid: doc,
+            document_name: docData.document_name,
+            user_name: docData.user_name,
+            user_nim: docData.user_nim,
+            printed_at: docData.printed_at || docData.created_at,
+            signature: sigData ? {
+                nama_dosen: sigData.nama_dosen,
+                nip: sigData.nip,
+                jabatan: sigData.jabatan
+            } : null
+        });
+
+        if (signatureId) {
+            db.get(`SELECT * FROM master_signature WHERE id = ?`, [signatureId], (err2, sigData) => {
+                buildResponse(sigData || null);
+            });
+        } else {
+            buildResponse(null);
+        }
+    });
 });
 
 //==================== ENDPOINTS TEMPLATES V2 =============================
@@ -1532,7 +1866,8 @@ app.get('/api/preview-pdf/:templateId', async (req, res) => {
     
     // Konversi DOCX ke PDF
     const pdfBuffer = await convertDocxToPdf(templatePath);
-    
+    const pdfBase64 = pdfBuffer.toString('base64');
+
     res.setHeader('Content-Type', 'application/pdf');
     res.send(pdfBuffer);
     
@@ -1706,61 +2041,6 @@ function generateDocUuid() {
   const timestamp = Date.now().toString(36);
   const random = Math.random().toString(36).substring(2, 8);
   return `OTP-${timestamp}-${random}`.toUpperCase();
-}
-
-// Overlay QR code ke PDF di pojok kanan bawah
-async function addVerificationQrToPdf(pdfBuffer, qrUrl) {
-  const pdfDoc = await PDFDocument.load(pdfBuffer);
-  const pages = pdfDoc.getPages();
-  const firstPage = pages[0];
-  const { width, height } = firstPage.getSize();
-  
-  // === KONFIGURASI QR ===
-  const qrSize = 50;  // Ubah ukuran QR (px), misal: 80, 100, 120
-  const marginRight = 20;  // Jarak dari kanan
-  const marginBottom = 20; // Jarak dari bawah
-  
-  // Posisi pojok kanan bawah
-  const x = width - qrSize - marginRight;
-  const y = marginBottom;
-  
-  // Generate QR
-  const qrBuffer = await QRCode.toBuffer(qrUrl, {
-    width: qrSize,
-    margin: 0,
-    color: { dark: '#000000', light: '#FFFFFF' },
-    errorCorrectionLevel: 'M'
-  });
-  
-  const qrImage = await pdfDoc.embedPng(qrBuffer);
-  
-  // Gambar QR
-  firstPage.drawImage(qrImage, { 
-    x: x, 
-    y: y, 
-    width: qrSize, 
-    height: qrSize 
-  });
-  
-  // === TAMBAHKAN TEXT "AUTHENTICATION" DI BAWAH QR ===
-  const helvetica = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const text = "AUTHENTICATION";
-  const textSize = 6;
-  const textWidth = helvetica.widthOfTextAtSize(text, textSize);
-  
-  // Posisi text (centered di bawah QR)
-  const textX = x + (qrSize / 2) - (textWidth / 2);
-  const textY = y - 8; // 5px di bawah QR
-  
-  firstPage.drawText(text, {
-    x: textX,
-    y: textY,
-    size: textSize,
-    font: helvetica,
-    color: rgb(0, 0, 0),
-  });
-  
-  return await pdfDoc.save();
 }
 
 // Error handler

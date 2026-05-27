@@ -595,7 +595,6 @@ function showError(viewer, message) {
         </div>`;
 }
 
-// ============ GENERATE PDF ============
 async function generatePDF() {
     const viewer = document.getElementById('pdfViewer');
     viewer.innerHTML = `
@@ -616,12 +615,12 @@ async function generatePDF() {
     const currentFormData = JSON.parse(storedData);
     const date = new Date();
     const year = date.getFullYear();
-    const month = date.getMonth() + 1; // Januari = 1
+    const month = date.getMonth() + 1;
 
-    // Format tanggal
-    const formattedDate = formatDateIndonesian();
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const formattedDate = `${date.getDate()} ${months[date.getMonth()]} ${year}`;
 
-    // Tahun akademik
     let tahunAkademik;
     if (month >= 7) {
         tahunAkademik = `${year}/${year + 1}`;
@@ -629,7 +628,6 @@ async function generatePDF() {
         tahunAkademik = `${year - 1}/${year}`;
     }
 
-    // Semester Ganjil/Genap
     let semester;
     if ((month >= 8 && month <= 12) || month === 1) {
         semester = 'Ganjil';
@@ -655,23 +653,23 @@ async function generatePDF() {
     }
     currentAllData = allData;
 
-
     // 🔥 CEK APAKAH ADA FIELD MANUAL
     const hasManualFields = currentFormData.fields?.some(f => f.data_source === 'MANUAL') || false;
     
-    // 🔥 SET TOMBOL CANCEL BERDASARKAN ADA/TIDAKNYA MANUAL FIELD
+    // 🔥 SET TOMBOL CANCEL
     const backLink = document.getElementById('backLink');
     if (hasManualFields) {
-        // Ada manual field -> cancel kembali ke form
         backLink.href = `form-generator.html?id=${currentTemplateId}`;
-        backLink.textContent = 'Kembali';
+        backLink.textContent = 'Kembali ke Form';
     } else {
-        // Tidak ada manual field -> cancel langsung ke dashboard
         backLink.href = 'dashboard.html';
         backLink.textContent = 'Kembali ke Dashboard';
     }
 
     try {
+        console.log('🚀 Mengirim request ke server...');
+        console.log('📦 Data:', { templateId: currentTemplateId, allData });
+        
         const response = await fetch('/api/generate-pdf', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -682,16 +680,47 @@ async function generatePDF() {
             })
         });
 
-        if (!response.ok) throw new Error(`Server error ${response.status}`);
+        console.log('📥 Response status:', response.status);
+        
+        // 🔥 CEK APAKAH RESPONSE OK
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Response error:', errorText);
+            throw new Error(`Server error ${response.status}: ${errorText.substring(0, 200)}`);
+        }
+        
         const result = await response.json();
+        console.log('📥 Response JSON:', result);
 
-        console.log('📥 Response:', result.success, '| error:', result.error);
-        console.log('📄 pdfBase64 length:', result.pdfBase64?.length);
-
-        if (!result.success || !result.pdfBase64) {
-            throw new Error(result.error || 'Respons tidak valid');
+        // 🔥 VALIDASI RESPONSE
+        if (!result.success) {
+            throw new Error(result.error || 'Server mengembalikan error');
+        }
+        
+        if (!result.pdfBase64) {
+            throw new Error('Server tidak mengirimkan PDF base64');
+        }
+        
+        // 🔥 VALIDASI BASE64 (cek apakah benar-benar base64)
+        if (typeof result.pdfBase64 !== 'string') {
+            throw new Error('pdfBase64 bukan string');
+        }
+        
+        if (result.pdfBase64.length === 0) {
+            throw new Error('pdfBase64 kosong');
+        }
+        
+        // 🔥 COBA DECODE AWAL UNTUK VALIDASI
+        try {
+            const testDecode = window.atob(result.pdfBase64.substring(0, 100));
+            console.log('✅ Base64 valid, test decode berhasil');
+        } catch (decodeError) {
+            console.error('Base64 decode error:', decodeError);
+            console.log('First 50 chars:', result.pdfBase64.substring(0, 50));
+            throw new Error('Format base64 tidak valid. Server mungkin mengirim error HTML.');
         }
 
+        // Konversi base64 ke blob
         const binary = window.atob(result.pdfBase64);
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) {
@@ -707,11 +736,21 @@ async function generatePDF() {
 
     } catch (error) {
         console.error('Generate error:', error);
-        showError(viewer, error.message);
+        
+        // 🔥 TAMPILKAN ERROR YANG LEBIH INFORMATIF
+        let errorMessage = error.message;
+        if (errorMessage.includes('atob')) {
+            errorMessage = 'Server mengirim response tidak valid. Cek console untuk detail.';
+        }
+        
+        viewer.innerHTML = `
+            <div style="text-align:center;padding:60px;color:#dc3545;">
+                <i class="bi bi-exclamation-triangle" style="font-size:48px;"></i>
+                <p class="mt-3" style="font-size:16px;">${errorMessage}</p>
+                <p class="mt-2" style="font-size:12px;color:#666;">Cek terminal server untuk detail error.</p>
+                <button onclick="generatePDF()" class="btn btn-primary mt-3" style="background:#006A42;">Coba Lagi</button>
+            </div>`;
     }
-
-    console.log('📦 Data yang diterima dari localStorage:', allData);
-    console.log('📦 Field list:', currentFormData.fields);
 }
 
 // ============ PRINT ============
